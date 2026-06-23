@@ -37,7 +37,6 @@
             overflow: visible;
             margin-top: 10px;
             margin-bottom: 20px;
-            /* 높이는 JavaScript에서 동적으로 비례 조절됩니다 */
         }
 
         /* * TV 전체 컨테이너 (고정된 원본 비율 유지) */
@@ -413,7 +412,18 @@
         const unmuteMessage = document.getElementById('unmute-message');
         const knobSound = document.getElementById('knob-sound');
 
-        const defaultChannels = [ 'cGfspDwnwFA', 'VcIO48gbN0A', 'h152BEBux7k', '721SQWSkV-g', '2L2OEf4FuIA', 'Tck-j-PX_ro' ];
+        // 요청하신 8개의 새로운 기본 채널 설정 (YouTube Video ID 추출 완료)
+        const defaultChannels = [
+            '26S5jhVKK_I', // 채널 1
+            '8zbpITJKUZg', // 채널 2
+            '8oXaCFzm9oc', // 채널 3
+            'WY54ZUDNBUM', // 채널 4
+            'S87sCX5Jjo0', // 채널 5
+            '5vjD0d8D9Ec', // 채널 6
+            'n0Z4KuYy2ro', // 채널 7
+            'cKJeXF4te7U'  // 채널 8
+        ];
+        
         const noiseLevels = [0, 0.1, 0.2, 0.4];
         const colorModes = ['grayscale(100%)', 'sepia(100%)', 'none'];
         let currentChannelIndex = 0;
