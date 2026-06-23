@@ -2,32 +2,53 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>My Old TV</title>
     <!-- 레트로 느낌을 위한 폰트 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
     <style>
-        /* * 전체 페이지 스타일 */
+        /* * 전역 상자 크기 설정 및 전체 페이지 스타일 */
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: flex-start;
             align-items: center;
             min-height: 100vh;
             background-color: #3d3d3d;
             font-family: 'Gowun Dodum', sans-serif;
             margin: 0;
-            overflow: hidden;
-            padding: 20px;
+            overflow-x: hidden; /* 가로 스크롤 방지 */
+            overflow-y: auto;   /* 세로 스크롤 허용 */
+            padding: 20px 10px;
         }
 
-        /* * TV 전체 컨테이너 */
+        /* * 모바일 화면 비율에 맞춰 전체 TV 크기를 동적으로 비례 축소하는 스케일러 */
+        .tv-scaler {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            width: 100%;
+            overflow: visible;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            /* 높이는 JavaScript에서 동적으로 비례 조절됩니다 */
+        }
+
+        /* * TV 전체 컨테이너 (고정된 원본 비율 유지) */
         .tv-container {
-            transform: scale(0.75);
-            margin-top: -60px;
-            margin-bottom: -60px;
+            width: 770px; /* 오리지널 TV 전체 가로 크기 기준 */
+            flex-shrink: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform-origin: top center;
         }
 
         /* * TV 본체 스타일 */
@@ -45,6 +66,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            box-sizing: content-box;
         }
 
         /* * 스크린 영역 */
@@ -57,6 +79,7 @@
             overflow: hidden;
             border: 15px solid #2d2d2d;
             box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+            box-sizing: content-box;
         }
 
         /* 화면 유리의 빛 반사 효과 */
@@ -136,6 +159,7 @@
             text-align: center;
             opacity: 1;
             transition: opacity 0.5s;
+            white-space: nowrap;
         }
 
         #unmute-message.hidden {
@@ -221,25 +245,28 @@
         .leg.left { transform: rotate(10deg); }
         .leg.right { transform: rotate(-10deg); }
 
+        /* * 하단 컨트롤 패널 스타일 */
         .custom-controls {
             background-color: #4a2a19;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 10px 20px rgba(0,0,0,0.4);
-            width: 600px;
-            margin-top: 20px;
+            width: 100%;
+            max-width: 600px;
+            margin-top: 10px;
             border: 3px solid #3e2723;
         }
 
         .custom-controls input {
-            width: calc(100% - 20px);
-            padding: 10px;
+            width: 100%;
+            padding: 12px;
             border: 2px solid #333;
             border-radius: 5px;
             background-color: #eee;
             color: #333;
             font-family: 'Gowun Dodum', sans-serif;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            font-size: 14px;
         }
 
         .custom-controls .button-group {
@@ -248,18 +275,20 @@
         }
 
         .custom-controls button {
-            flex-grow: 1;
-            padding: 10px;
+            flex: 1;
+            padding: 12px 10px;
             border: none;
             border-radius: 5px;
             background: linear-gradient(145deg, #e0e0e0, #a0a0a0);
             color: #333;
             font-family: 'Gowun Dodum', sans-serif;
             font-weight: bold;
+            font-size: 13px;
             cursor: pointer;
             border: 2px solid #555;
             box-shadow: 0 3px 5px rgba(0,0,0,0.3);
             transition: all 0.1s ease-in-out;
+            white-space: nowrap;
         }
         
         .custom-controls button:active {
@@ -268,9 +297,9 @@
         }
         
         #share-link-display {
-            margin-top: 10px;
+            margin-top: 12px;
             background-color: #333;
-            padding: 5px;
+            padding: 8px;
             border-radius: 5px;
             color: #a5d6a7;
             font-size: 12px;
@@ -279,130 +308,77 @@
             word-break: break-all;
         }
 
-        /* 반응형 디자인을 위한 미디어 쿼리 */
-        @media (max-width: 768px) {
+        /* 모바일 반응형 커스텀 셋팅 */
+        @media (max-width: 500px) {
             body {
-                overflow: auto; /* 모바일에서 스크롤 허용 */
-                padding: 10px;
+                padding: 10px 5px;
             }
-
-            .tv-container {
-                transform: scale(1); /* 모바일에서는 기본 크기로 */
-                margin-top: 20px;
-                margin-bottom: 20px;
-                width: 100%;
-            }
-
-            .retro-tv {
-                width: 95vw; /* 화면 너비에 맞게 조절 */
-                padding: 15px;
-            }
-
-            .screen {
-                width: 100%;
-                height: auto;
-                aspect-ratio: 4 / 3; /* 4:3 비율 유지 */
-                border-width: 10px;
-            }
-            
-            #player-container {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                transform: none; /* 변환 제거 */
-            }
-
-            .controls {
-                padding: 15px 5px 5px 5px;
-            }
-
-            .speaker-grill {
-                width: 60px;
-                height: 60px;
-            }
-
-            .knob-group {
-                flex-wrap: wrap; /* 다이얼 그룹 줄바꿈 허용 */
-                justify-content: flex-end;
-                max-width: 200px;
-            }
-
-            .knob {
-                width: 40px;
-                height: 40px;
-                margin-left: 8px;
-                margin-bottom: 20px; /* 라벨 공간 확보 */
-            }
-
-            .knob::after {
-                height: 10px;
-            }
-
-            .knob-label {
-                margin-top: 48px;
-                font-size: 10px;
-            }
-
             .custom-controls {
-                width: 90vw;
-                padding: 15px;
+                width: 95%;
+                padding: 15px 10px;
             }
-
             .custom-controls .button-group {
-                flex-direction: column; /* 버튼 세로 정렬 */
+                flex-direction: column;
+                gap: 8px;
+            }
+            .custom-controls button {
+                width: 100%;
+                padding: 10px;
             }
         }
     </style>
 </head>
 <body>
 
-    <div class="tv-container">
-        <div class="retro-tv">
-            <div class="screen">
-                <div id="unmute-message">VOLUME 노브를 클릭하면 소리가 켜집니다</div>
-                <div id="power-off-overlay"><div id="power-off-line"></div></div>
-                <div class="channel-change-effect"></div>
-                <div class="noise"></div>
-                <div id="player-container"></div>
-            </div>
-            <div class="controls">
-                <div class="speaker-grill"></div>
-                <div class="knob-group">
-                    <div style="position: relative; text-align: center;">
-                        <div class="knob" id="power-knob"></div>
-                        <span class="knob-label">POWER</span>
-                    </div>
-                    <div style="position: relative; text-align: center;">
-                        <div class="knob" id="volume-knob"></div>
-                        <span class="knob-label">VOLUME</span>
-                    </div>
-                     <div style="position: relative; text-align: center;">
-                        <div class="knob" id="channel-down-knob"></div>
-                        <span class="knob-label">CH ▼</span>
-                    </div>
-                    <div style="position: relative; text-align: center;">
-                        <div class="knob" id="channel-up-knob"></div>
-                        <span class="knob-label">CH ▲</span>
-                    </div>
-                    <div style="position: relative; text-align: center;">
-                        <div class="knob" id="noise-knob"></div>
-                        <span class="knob-label">NOISE</span>
-                    </div>
-                    <div style="position: relative; text-align: center;">
-                        <div class="knob" id="color-knob"></div>
-                        <span class="knob-label">COLOR</span>
+    <!-- TV를 화면 너비에 맞게 완벽하게 비례 축소시키는 스케일러 컨테이너 -->
+    <div class="tv-scaler">
+        <div class="tv-container">
+            <div class="retro-tv">
+                <div class="screen">
+                    <div id="unmute-message">VOLUME 노브를 클릭하면 소리가 켜집니다</div>
+                    <div id="power-off-overlay"><div id="power-off-line"></div></div>
+                    <div class="channel-change-effect"></div>
+                    <div class="noise"></div>
+                    <div id="player-container"></div>
+                </div>
+                <div class="controls">
+                    <div class="speaker-grill"></div>
+                    <div class="knob-group">
+                        <div style="position: relative; text-align: center;">
+                            <div class="knob" id="power-knob"></div>
+                            <span class="knob-label">POWER</span>
+                        </div>
+                        <div style="position: relative; text-align: center;">
+                            <div class="knob" id="volume-knob"></div>
+                            <span class="knob-label">VOLUME</span>
+                        </div>
+                         <div style="position: relative; text-align: center;">
+                            <div class="knob" id="channel-down-knob"></div>
+                            <span class="knob-label">CH ▼</span>
+                        </div>
+                        <div style="position: relative; text-align: center;">
+                            <div class="knob" id="channel-up-knob"></div>
+                            <span class="knob-label">CH ▲</span>
+                        </div>
+                        <div style="position: relative; text-align: center;">
+                            <div class="knob" id="noise-knob"></div>
+                            <span class="knob-label">NOISE</span>
+                        </div>
+                        <div style="position: relative; text-align: center;">
+                            <div class="knob" id="color-knob"></div>
+                            <span class="knob-label">COLOR</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="tv-legs">
-            <div class="leg left"></div>
-            <div class="leg right"></div>
+            <div class="tv-legs">
+                <div class="leg left"></div>
+                <div class="leg right"></div>
+            </div>
         </div>
     </div>
 
+    <!-- 하단 영상 제어 패널 -->
     <div class="custom-controls">
         <input type="text" id="youtube-link-input" placeholder="유튜브 링크를 여기에 붙여넣으세요">
         <div class="button-group">
@@ -437,7 +413,8 @@
         const unmuteMessage = document.getElementById('unmute-message');
         const knobSound = document.getElementById('knob-sound');
 
-        const defaultChannels = [ 'cGfspDwnwFA', 'VcIO48gbN0A', 'h152BEBux7k', '721SQWSkV-g', '2L2OEf4FuIA', 'Tck-j-PX_ro' ];        const noiseLevels = [0, 0.1, 0.2, 0.4];
+        const defaultChannels = [ 'cGfspDwnwFA', 'VcIO48gbN0A', 'h152BEBux7k', '721SQWSkV-g', '2L2OEf4FuIA', 'Tck-j-PX_ro' ];
+        const noiseLevels = [0, 0.1, 0.2, 0.4];
         const colorModes = ['grayscale(100%)', 'sepia(100%)', 'none'];
         let currentChannelIndex = 0;
         let currentNoiseIndex = 1;
@@ -447,6 +424,37 @@
         let isTvOn = true;
         let isAutoChangeOn = true;
 
+        /* * 모바일 화면 너비에 반응하여 TV를 찌그러짐 없이 비율 축소하는 최적화 엔진 */
+        function handleResize() {
+            const scaler = document.querySelector('.tv-scaler');
+            const container = document.querySelector('.tv-container');
+            if (!scaler || !container) return;
+
+            const windowWidth = window.innerWidth;
+            const sidePadding = 20; // 좌우 여백 확보
+            const designWidth = 770; // TV 원본 가로 영역 (retro-tv 700 + 여유마진)
+            const designHeight = 750; // TV 원본 세로 영역 (retro-tv + legs)
+
+            let scale = 0.75; // 데스크톱 기본 스케일 값
+
+            if (windowWidth < designWidth) {
+                // 모바일 영역: 화면 너비 비율에 맞게 scale을 동적 계산
+                scale = (windowWidth - sidePadding) / designWidth;
+            }
+
+            container.style.transform = `scale(${scale})`;
+            
+            // Scaler의 세로 높이를 scaled된 TV 크기만큼 정확하게 계산해 줌으로써 아래 요소들과 겹치지 않게 유지
+            scaler.style.height = `${designHeight * scale}px`;
+        }
+
+        // 초기 및 크기 변경 감지 이벤트 등록
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(handleResize, 100);
+        });
+        document.addEventListener('DOMContentLoaded', handleResize);
+
         function onYouTubeIframeAPIReady() {
             const initialVideoId = getInitialVideoId();
             currentVideoId = initialVideoId;
@@ -455,9 +463,10 @@
                 height: '100%',
                 width: '100%',
                 videoId: initialVideoId,
-                playerVars: { 'autoplay': 1, 'controls': 0, 'rel': 0, 'showinfo': 0, },
+                playerVars: { 'autoplay': 1, 'controls': 0, 'rel': 0, 'showinfo': 0, 'mute': 1 },
                 events: { 'onReady': onPlayerReady, 'onStateChange': onPlayerStateChange }
             });
+            handleResize();
         }
 
         function onPlayerReady(event) {
@@ -465,6 +474,7 @@
             powerKnob.classList.add('on');
             noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
             playerContainer.style.filter = colorModes[currentColorIndex];
+            handleResize(); // 비디오 로딩 후 최종 크기 보정
         }
 
         function onPlayerStateChange(event) {
