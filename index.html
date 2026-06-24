@@ -120,20 +120,20 @@
             width: 100%; height: 100%;
             transform: translate(-50%, -50%);
             z-index: 1;
-            filter: grayscale(100%); /* 초기 상태: 흑백 모드로 설정 */
+            filter: grayscale(100%); /* 접속 즉시 흑백 모드로 로딩 */
             transition: opacity 0.2s, filter 0.4s;
         }
 
-        /* TV 꺼짐 효과 (유튜브 광고/외부 링크 클릭 간섭을 막기 위해 켜졌을 때도 상단 레이어로 존재하되, 전원 상태에 따라 display 조절) */
+        /* TV 꺼짐 효과 (기본적으로 켜져 있으므로 display: none) */
         #power-off-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             background: #000;
             z-index: 15;
-            display: flex;
+            display: none; /* 꺼질 때만 flex로 변경 */
             align-items: center;
             justify-content: center;
-            pointer-events: auto; /* 터치가 유튜브 화면으로 직접 가지 않도록 방패 역할 유지 */
+            pointer-events: none; /* 꺼져있을 때 터치 오동작 완벽 방지 */
         }
 
         #power-off-line {
@@ -161,6 +161,7 @@
             opacity: 1;
             transition: opacity 0.5s;
             white-space: nowrap;
+            pointer-events: none;
         }
 
         #unmute-message.hidden {
@@ -343,7 +344,7 @@
             <div class="retro-tv">
                 <div class="screen">
                     <div id="unmute-message">VOLUME 노브를 클릭하면 소리가 켜집니다</div>
-                    <!-- 순수 블랙 오버레이 피드백 (팝업/텍스트 없음) -->
+                    <!-- 순수 블랙 오버레이 피드백 (기본적으론 꺼져있음) -->
                     <div id="power-off-overlay">
                         <div id="power-off-line"></div>
                     </div>
@@ -355,7 +356,8 @@
                     <div class="speaker-grill"></div>
                     <div class="knob-group">
                         <div style="position: relative; text-align: center;">
-                            <div class="knob" id="power-knob" style="--rotation: 0deg;"></div>
+                            <!-- 기본 구동 상태가 ON(45도)이므로 클래스 on과 인라인 회전을 반영해 둡니다. -->
+                            <div class="knob on" id="power-knob" style="--rotation: 45deg;"></div>
                             <span class="knob-label">POWER</span>
                         </div>
                         <div style="position: relative; text-align: center;">
@@ -448,8 +450,8 @@
         let player;
         let currentVideoId = '';
         
-        // * 모바일 자동재생 정책 준수 및 레트로 기동을 위해 꺼진 상태(false)로 기동
-        let isTvOn = false; 
+        // * 자동재생 보장을 위해 웹 접속하자마자 바로 기동 상태(true)로 세팅
+        let isTvOn = true; 
         let isAutoChangeOn = true;
 
         /* * 모바일 화면 너비에 반응하여 TV를 비율 유지하며 비례 축소하는 자동 조정 엔진 */
@@ -487,17 +489,27 @@
                 height: '100%',
                 width: '100%',
                 videoId: initialVideoId,
-                playerVars: { 'autoplay': 0, 'controls': 0, 'rel': 0, 'showinfo': 0, 'mute': 1 },
+                playerVars: { 
+                    'autoplay': 1, 
+                    'controls': 0, 
+                    'rel': 0, 
+                    'showinfo': 0, 
+                    'mute': 1, 
+                    'playsinline': 1 // 모바일 환경 자동재생을 위한 필수 속성
+                },
                 events: { 'onReady': onPlayerReady, 'onStateChange': onPlayerStateChange }
             });
             handleResize();
         }
 
         function onPlayerReady(event) {
+            // 접속 즉시 완벽한 무음 기동 (브라우저 차단 회피 핵심)
             event.target.mute();
+            event.target.playVideo();
+            
             noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
             
-            // * 흑백 필터 세팅
+            // * 초기에 원하셨던 흑백 필터 세팅
             playerContainer.style.filter = colorModes[currentColorIndex];
             handleResize();
         }
@@ -560,7 +572,7 @@
                 playerContainer.style.opacity = '1';
                 
                 if (player) {
-                    player.playVideo(); // 유저 터치(노브 클릭) 내에서 완벽하게 시작
+                    player.playVideo();
                 }
                 
                 if(player && !player.isMuted()) unmuteMessage.classList.add('hidden');
