@@ -120,19 +120,20 @@
             width: 100%; height: 100%;
             transform: translate(-50%, -50%);
             z-index: 1;
-            filter: grayscale(100%); /* 초기 상태: 흑백 모드로 시작 */
+            filter: grayscale(100%); /* 초기 상태: 흑백 모드로 설정 */
             transition: opacity 0.2s, filter 0.4s;
         }
 
-        /* TV 꺼짐 효과 */
+        /* TV 꺼짐 효과 (유튜브 광고/외부 링크 클릭 간섭을 막기 위해 켜졌을 때도 상단 레이어로 존재하되, 전원 상태에 따라 display 조절) */
         #power-off-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             background: #000;
             z-index: 15;
-            display: none;
+            display: flex;
             align-items: center;
             justify-content: center;
+            pointer-events: auto; /* 터치가 유튜브 화면으로 직접 가지 않도록 방패 역할 유지 */
         }
 
         #power-off-line {
@@ -141,6 +142,7 @@
             background: #fff;
             box-shadow: 0 0 10px #fff, 0 0 20px #fff;
             transition: width 0.3s ease-in-out;
+            display: none;
         }
 
         /* 소리 켜기 안내 메시지 */
@@ -341,7 +343,10 @@
             <div class="retro-tv">
                 <div class="screen">
                     <div id="unmute-message">VOLUME 노브를 클릭하면 소리가 켜집니다</div>
-                    <div id="power-off-overlay"><div id="power-off-line"></div></div>
+                    <!-- 순수 블랙 오버레이 피드백 (팝업/텍스트 없음) -->
+                    <div id="power-off-overlay">
+                        <div id="power-off-line"></div>
+                    </div>
                     <div class="channel-change-effect"></div>
                     <div class="noise"></div>
                     <div id="player-container"></div>
@@ -350,7 +355,7 @@
                     <div class="speaker-grill"></div>
                     <div class="knob-group">
                         <div style="position: relative; text-align: center;">
-                            <div class="knob" id="power-knob" style="--rotation: 45deg;"></div>
+                            <div class="knob" id="power-knob" style="--rotation: 0deg;"></div>
                             <span class="knob-label">POWER</span>
                         </div>
                         <div style="position: relative; text-align: center;">
@@ -442,7 +447,9 @@
         let chDownRotation = 0;
         let player;
         let currentVideoId = '';
-        let isTvOn = true;
+        
+        // * 모바일 자동재생 정책 준수 및 레트로 기동을 위해 꺼진 상태(false)로 기동
+        let isTvOn = false; 
         let isAutoChangeOn = true;
 
         /* * 모바일 화면 너비에 반응하여 TV를 비율 유지하며 비례 축소하는 자동 조정 엔진 */
@@ -480,7 +487,7 @@
                 height: '100%',
                 width: '100%',
                 videoId: initialVideoId,
-                playerVars: { 'autoplay': 1, 'controls': 0, 'rel': 0, 'showinfo': 0, 'mute': 1 },
+                playerVars: { 'autoplay': 0, 'controls': 0, 'rel': 0, 'showinfo': 0, 'mute': 1 },
                 events: { 'onReady': onPlayerReady, 'onStateChange': onPlayerStateChange }
             });
             handleResize();
@@ -488,11 +495,9 @@
 
         function onPlayerReady(event) {
             event.target.mute();
-            powerKnob.classList.add('on');
-            powerKnob.style.setProperty('--rotation', '45deg');
             noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
             
-            // * YouTube 플레이어 로딩 직후 "흑백 필터" 적용
+            // * 흑백 필터 세팅
             playerContainer.style.filter = colorModes[currentColorIndex];
             handleResize();
         }
@@ -529,31 +534,69 @@
             knobSound.play();
         }
 
+        // TV 전원 끄기
         function turnTvOff() {
-            player.pauseVideo();
+            if (player) {
+                player.pauseVideo();
+            }
             playerContainer.style.opacity = '0';
+            powerOffLine.style.display = 'none';
             powerOffOverlay.style.display = 'flex';
-            setTimeout(() => { powerOffLine.style.width = '100%'; }, 10);
-            setTimeout(() => { powerOffLine.style.width = '0%'; }, 300);
+            
             powerKnob.classList.remove('on');
             powerKnob.style.setProperty('--rotation', '0deg');
             unmuteMessage.classList.add('hidden');
         }
 
+        // TV 전원 켜기
         function turnTvOn() {
+            powerOffLine.style.display = 'block';
             powerOffLine.style.width = '0%';
             powerOffOverlay.style.display = 'flex';
+            
             setTimeout(() => { powerOffLine.style.width = '100%'; }, 10);
             setTimeout(() => {
                 powerOffOverlay.style.display = 'none';
                 playerContainer.style.opacity = '1';
-                player.playVideo();
-                if(!player.isMuted()) unmuteMessage.classList.add('hidden');
+                
+                if (player) {
+                    player.playVideo(); // 유저 터치(노브 클릭) 내에서 완벽하게 시작
+                }
+                
+                if(player && !player.isMuted()) unmuteMessage.classList.add('hidden');
                 else unmuteMessage.classList.remove('hidden');
             }, 300);
             powerKnob.classList.add('on');
             powerKnob.style.setProperty('--rotation', '45deg');
         }
+
+        function togglePower() {
+            playKnobSound();
+            isTvOn = !isTvOn;
+            if (isTvOn) turnTvOn();
+            else turnTvOff();
+        }
+
+        // 오직 POWER 노브 클릭을 통해서만 전원 토글이 작동하도록 세팅
+        powerKnob.addEventListener('click', togglePower);
+
+        volumeKnob.addEventListener('click', () => {
+            if (!isTvOn || !player) return;
+            playKnobSound();
+            if (player.isMuted()) {
+                player.unMute();
+                volumeKnob.classList.add('unmuted');
+                volumeKnob.style.setProperty('--rotation', '135deg'); // 소리 켜짐 상태로 회전
+                unmuteMessage.classList.add('hidden');
+            } else {
+                player.mute();
+                volumeKnob.classList.remove('unmuted');
+                volumeKnob.style.setProperty('--rotation', '0deg'); // 음소거 상태
+            }
+        });
+
+        channelUpKnob.addEventListener('click', () => changeChannel('up'));
+        channelDownKnob.addEventListener('click', () => changeChannel('down'));
 
         function changeChannel(direction) {
             if (!isTvOn || !player) return;
@@ -578,31 +621,6 @@
                 channelEffect.style.display = 'none';
             }, 500);
         }
-
-        powerKnob.addEventListener('click', () => {
-            playKnobSound();
-            isTvOn = !isTvOn;
-            if (isTvOn) turnTvOn();
-            else turnTvOff();
-        });
-
-        volumeKnob.addEventListener('click', () => {
-            if (!isTvOn || !player) return;
-            playKnobSound();
-            if (player.isMuted()) {
-                player.unMute();
-                volumeKnob.classList.add('unmuted');
-                volumeKnob.style.setProperty('--rotation', '135deg'); // 소리 켜짐 상태로 회전
-                unmuteMessage.classList.add('hidden');
-            } else {
-                player.mute();
-                volumeKnob.classList.remove('unmuted');
-                volumeKnob.style.setProperty('--rotation', '0deg'); // 음소거 상태
-            }
-        });
-
-        channelUpKnob.addEventListener('click', () => changeChannel('up'));
-        channelDownKnob.addEventListener('click', () => changeChannel('down'));
 
         noiseKnob.addEventListener('click', () => {
             if (!isTvOn) return;
