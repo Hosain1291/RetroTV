@@ -120,7 +120,7 @@
             width: 100%; height: 100%;
             transform: translate(-50%, -50%);
             z-index: 1;
-            filter: grayscale(100%);
+            filter: grayscale(100%); /* 초기 상태: 흑백 모드로 시작 */
             transition: opacity 0.2s, filter 0.4s;
         }
 
@@ -185,7 +185,9 @@
 
         .knob-group { display: flex; align-items: center; }
         
+        /* * 회전 값을 CSS 변수(--rotation)로 제어하여 아날로그 맛을 살림 */
         .knob {
+            --rotation: 0deg;
             width: 45px; height: 45px;
             background: linear-gradient(145deg, #e0e0e0, #a0a0a0);
             border-radius: 50%;
@@ -193,11 +195,14 @@
             box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3), inset 0 0 5px rgba(0, 0, 0, 0.5);
             margin-left: 10px;
             position: relative;
-            transition: transform 0.1s ease-in-out, box-shadow 0.2s;
+            transform: rotate(var(--rotation));
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.2s;
             cursor: pointer;
         }
         
-        .knob:active { transform: rotate(30deg) scale(0.95); }
+        .knob:active { 
+            transform: rotate(calc(var(--rotation) + 15deg)) scale(0.93); 
+        }
         
         .knob.unmuted {
             box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3), inset 0 0 5px rgba(0, 0, 0, 0.5), 0 0 15px #fff3b0;
@@ -207,6 +212,7 @@
              box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3), inset 0 0 5px rgba(0, 0, 0, 0.5), 0 0 15px #ff8a80;
         }
 
+        /* 노브의 눈금(포인터) 선 */
         .knob::after {
             content: '';
             position: absolute;
@@ -344,27 +350,27 @@
                     <div class="speaker-grill"></div>
                     <div class="knob-group">
                         <div style="position: relative; text-align: center;">
-                            <div class="knob" id="power-knob"></div>
+                            <div class="knob" id="power-knob" style="--rotation: 45deg;"></div>
                             <span class="knob-label">POWER</span>
                         </div>
                         <div style="position: relative; text-align: center;">
-                            <div class="knob" id="volume-knob"></div>
+                            <div class="knob" id="volume-knob" style="--rotation: 0deg;"></div>
                             <span class="knob-label">VOLUME</span>
                         </div>
                          <div style="position: relative; text-align: center;">
-                            <div class="knob" id="channel-down-knob"></div>
+                            <div class="knob" id="channel-down-knob" style="--rotation: 0deg;"></div>
                             <span class="knob-label">CH ▼</span>
                         </div>
                         <div style="position: relative; text-align: center;">
-                            <div class="knob" id="channel-up-knob"></div>
+                            <div class="knob" id="channel-up-knob" style="--rotation: 0deg;"></div>
                             <span class="knob-label">CH ▲</span>
                         </div>
                         <div style="position: relative; text-align: center;">
-                            <div class="knob" id="noise-knob"></div>
+                            <div class="knob" id="noise-knob" style="--rotation: 60deg;"></div>
                             <span class="knob-label">NOISE</span>
                         </div>
                         <div style="position: relative; text-align: center;">
-                            <div class="knob" id="color-knob"></div>
+                            <div class="knob" id="color-knob" style="--rotation: 0deg;"></div>
                             <span class="knob-label">COLOR</span>
                         </div>
                     </div>
@@ -412,7 +418,7 @@
         const unmuteMessage = document.getElementById('unmute-message');
         const knobSound = document.getElementById('knob-sound');
 
-        // 요청하신 8개의 새로운 기본 채널 설정 (YouTube Video ID 추출 완료)
+        // 지정해주신 8개의 채널 리스트
         const defaultChannels = [
             '26S5jhVKK_I', // 채널 1
             '8zbpITJKUZg', // 채널 2
@@ -425,40 +431,41 @@
         ];
         
         const noiseLevels = [0, 0.1, 0.2, 0.4];
-        const colorModes = ['grayscale(100%)', 'sepia(100%)', 'none'];
+        
+        // * 컬러 모드 순서: 흑백(Index 0) ➔ 컬러(Index 1) ➔ 세피아(Index 2)
+        const colorModes = ['grayscale(100%)', 'none', 'sepia(100%)'];
+        
         let currentChannelIndex = 0;
         let currentNoiseIndex = 1;
-        let currentColorIndex = 0;
+        let currentColorIndex = 0; // 초기값 0 = 흑백(grayscale) 시작
+        let chUpRotation = 0;
+        let chDownRotation = 0;
         let player;
         let currentVideoId = '';
         let isTvOn = true;
         let isAutoChangeOn = true;
 
-        /* * 모바일 화면 너비에 반응하여 TV를 찌그러짐 없이 비율 축소하는 최적화 엔진 */
+        /* * 모바일 화면 너비에 반응하여 TV를 비율 유지하며 비례 축소하는 자동 조정 엔진 */
         function handleResize() {
             const scaler = document.querySelector('.tv-scaler');
             const container = document.querySelector('.tv-container');
             if (!scaler || !container) return;
 
             const windowWidth = window.innerWidth;
-            const sidePadding = 20; // 좌우 여백 확보
-            const designWidth = 770; // TV 원본 가로 영역 (retro-tv 700 + 여유마진)
-            const designHeight = 750; // TV 원본 세로 영역 (retro-tv + legs)
+            const sidePadding = 20; 
+            const designWidth = 770; 
+            const designHeight = 750; 
 
-            let scale = 0.75; // 데스크톱 기본 스케일 값
+            let scale = 0.75; 
 
             if (windowWidth < designWidth) {
-                // 모바일 영역: 화면 너비 비율에 맞게 scale을 동적 계산
                 scale = (windowWidth - sidePadding) / designWidth;
             }
 
             container.style.transform = `scale(${scale})`;
-            
-            // Scaler의 세로 높이를 scaled된 TV 크기만큼 정확하게 계산해 줌으로써 아래 요소들과 겹치지 않게 유지
             scaler.style.height = `${designHeight * scale}px`;
         }
 
-        // 초기 및 크기 변경 감지 이벤트 등록
         window.addEventListener('resize', handleResize);
         window.addEventListener('orientationchange', () => {
             setTimeout(handleResize, 100);
@@ -482,9 +489,12 @@
         function onPlayerReady(event) {
             event.target.mute();
             powerKnob.classList.add('on');
+            powerKnob.style.setProperty('--rotation', '45deg');
             noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
+            
+            // * YouTube 플레이어 로딩 직후 "흑백 필터" 적용
             playerContainer.style.filter = colorModes[currentColorIndex];
-            handleResize(); // 비디오 로딩 후 최종 크기 보정
+            handleResize();
         }
 
         function onPlayerStateChange(event) {
@@ -526,6 +536,7 @@
             setTimeout(() => { powerOffLine.style.width = '100%'; }, 10);
             setTimeout(() => { powerOffLine.style.width = '0%'; }, 300);
             powerKnob.classList.remove('on');
+            powerKnob.style.setProperty('--rotation', '0deg');
             unmuteMessage.classList.add('hidden');
         }
 
@@ -541,6 +552,7 @@
                 else unmuteMessage.classList.remove('hidden');
             }, 300);
             powerKnob.classList.add('on');
+            powerKnob.style.setProperty('--rotation', '45deg');
         }
 
         function changeChannel(direction) {
@@ -548,10 +560,15 @@
             playKnobSound();
             channelEffect.style.display = 'block';
 
+            // 채널 노브 회전각 증감
             if (direction === 'up') {
                 currentChannelIndex = (currentChannelIndex + 1) % defaultChannels.length;
+                chUpRotation += 45;
+                channelUpKnob.style.setProperty('--rotation', `${chUpRotation}deg`);
             } else {
                 currentChannelIndex = (currentChannelIndex - 1 + defaultChannels.length) % defaultChannels.length;
+                chDownRotation -= 45;
+                channelDownKnob.style.setProperty('--rotation', `${chDownRotation}deg`);
             }
             
             const nextVideoId = defaultChannels[currentChannelIndex];
@@ -575,10 +592,12 @@
             if (player.isMuted()) {
                 player.unMute();
                 volumeKnob.classList.add('unmuted');
+                volumeKnob.style.setProperty('--rotation', '135deg'); // 소리 켜짐 상태로 회전
                 unmuteMessage.classList.add('hidden');
             } else {
                 player.mute();
                 volumeKnob.classList.remove('unmuted');
+                volumeKnob.style.setProperty('--rotation', '0deg'); // 음소거 상태
             }
         });
 
@@ -590,13 +609,22 @@
             playKnobSound();
             currentNoiseIndex = (currentNoiseIndex + 1) % noiseLevels.length;
             noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
+            
+            // 아날로그 회전 매핑 (0, 60, 120, 180도)
+            noiseKnob.style.setProperty('--rotation', `${currentNoiseIndex * 60}deg`);
         });
 
+        // * COLOR 조절기 (흑백 ➔ 컬러 ➔ 세피아 순서 순환 및 노브 실제 회전 기능 탑재)
         colorKnob.addEventListener('click', () => {
             if (!isTvOn) return;
             playKnobSound();
             currentColorIndex = (currentColorIndex + 1) % colorModes.length;
+            
+            // 비디오 화면에 실시간 CSS 필터 인젝션
             playerContainer.style.filter = colorModes[currentColorIndex];
+            
+            // 컬러 노브 물리 회전 매핑 (0도, 120도, 240도)
+            colorKnob.style.setProperty('--rotation', `${currentColorIndex * 120}deg`);
         });
 
         autoChangeToggle.addEventListener('click', () => {
