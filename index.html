@@ -120,11 +120,11 @@
             width: 100%; height: 100%;
             transform: translate(-50%, -50%);
             z-index: 1;
-            filter: grayscale(100%); /* 접속 즉시 흑백 모드로 로딩 */
+            filter: grayscale(100%); /* 처음 접속 시 흑백 모드로 로딩 */
             transition: opacity 0.2s, filter 0.4s;
         }
 
-        /* TV 꺼짐 효과 (기본적으로 켜져 있으므로 display: none) */
+        /* TV 꺼짐 효과 */
         #power-off-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -188,7 +188,7 @@
 
         .knob-group { display: flex; align-items: center; }
         
-        /* * 회전 값을 CSS 변수(--rotation)로 제어하여 아날로그 맛을 살림 */
+        /* * 회전 값을 CSS 변수(--rotation)로 제어하여 물리 회전 구현 */
         .knob {
             --rotation: 0deg;
             width: 45px; height: 45px;
@@ -215,7 +215,7 @@
              box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3), inset 0 0 5px rgba(0, 0, 0, 0.5), 0 0 15px #ff8a80;
         }
 
-        /* 노브의 눈금(포인터) 선 */
+        /* 노브의 눈금 선 */
         .knob::after {
             content: '';
             position: absolute;
@@ -338,13 +338,12 @@
 </head>
 <body>
 
-    <!-- TV를 화면 너비에 맞게 완벽하게 비례 축소시키는 스케일러 컨테이너 -->
+    <!-- TV 비율을 비례 축소시키는 스케일러 컨테이너 -->
     <div class="tv-scaler">
         <div class="tv-container">
             <div class="retro-tv">
                 <div class="screen">
                     <div id="unmute-message">VOLUME 노브를 클릭하면 소리가 켜집니다</div>
-                    <!-- 순수 블랙 오버레이 피드백 (기본적으론 꺼져있음) -->
                     <div id="power-off-overlay">
                         <div id="power-off-line"></div>
                     </div>
@@ -356,7 +355,6 @@
                     <div class="speaker-grill"></div>
                     <div class="knob-group">
                         <div style="position: relative; text-align: center;">
-                            <!-- 기본 구동 상태가 ON(45도)이므로 클래스 on과 인라인 회전을 반영해 둡니다. -->
                             <div class="knob on" id="power-knob" style="--rotation: 45deg;"></div>
                             <span class="knob-label">POWER</span>
                         </div>
@@ -403,9 +401,8 @@
     
     <audio id="knob-sound" src="data:audio/mpeg;base64,SUQzBAAAAAAAIVRYWENYAAAADklQTUNEUgAAABJDT01FAAAALAAAAGVuZ0lQTUNEUiBDb21tZW50AFhTU0gAAAAPTEFWRjU2LjM2LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAAAAACQABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBASw=="></audio>
     
-    <script src="https://www.youtube.com/iframe_api"></script>
     <script>
-        // DOM 요소
+        // DOM 요소 정의
         const powerKnob = document.getElementById('power-knob');
         const volumeKnob = document.getElementById('volume-knob');
         const channelDownKnob = document.getElementById('channel-down-knob');
@@ -425,7 +422,7 @@
         const unmuteMessage = document.getElementById('unmute-message');
         const knobSound = document.getElementById('knob-sound');
 
-        // 지정해주신 8개의 채널 리스트
+        // 요청해주신 기본 채널 8개
         const defaultChannels = [
             '26S5jhVKK_I', // 채널 1
             '8zbpITJKUZg', // 채널 2
@@ -444,17 +441,16 @@
         
         let currentChannelIndex = 0;
         let currentNoiseIndex = 1;
-        let currentColorIndex = 0; // 초기값 0 = 흑백(grayscale) 시작
+        let currentColorIndex = 0; // 초기 상태: 흑백으로 시작
         let chUpRotation = 0;
         let chDownRotation = 0;
         let player;
         let currentVideoId = '';
         
-        // * 자동재생 보장을 위해 웹 접속하자마자 바로 기동 상태(true)로 세팅
         let isTvOn = true; 
         let isAutoChangeOn = true;
 
-        /* * 모바일 화면 너비에 반응하여 TV를 비율 유지하며 비례 축소하는 자동 조정 엔진 */
+        /* * 모바일 화면 너비에 반응하여 TV 비율을 동적으로 완벽 보정하는 엔진 */
         function handleResize() {
             const scaler = document.querySelector('.tv-scaler');
             const container = document.querySelector('.tv-container');
@@ -465,7 +461,7 @@
             const designWidth = 770; 
             const designHeight = 750; 
 
-            let scale = 0.75; 
+            let scale = 0.75; // 데스크톱 기본 축소 비율
 
             if (windowWidth < designWidth) {
                 scale = (windowWidth - sidePadding) / designWidth;
@@ -481,6 +477,7 @@
         });
         document.addEventListener('DOMContentLoaded', handleResize);
 
+        // * 유튜브 API를 로딩하기 직전에 전역 API 준비 핸들러를 먼저 선언하여 Race Condition을 원천 방지합니다.
         function onYouTubeIframeAPIReady() {
             const initialVideoId = getInitialVideoId();
             currentVideoId = initialVideoId;
@@ -494,22 +491,35 @@
                     'controls': 0, 
                     'rel': 0, 
                     'showinfo': 0, 
-                    'mute': 1, 
-                    'playsinline': 1 // 모바일 환경 자동재생을 위한 필수 속성
+                    'mute': 1,        // 모바일 자동재생 허용을 위해 최초 무음(Muted) 적용
+                    'playsinline': 1,  // 모바일 브라우저에서 유튜브 전체화면 가로채기 방지
+                    'enablejsapi': 1
                 },
-                events: { 'onReady': onPlayerReady, 'onStateChange': onPlayerStateChange }
+                events: { 
+                    'onReady': onPlayerReady, 
+                    'onStateChange': onPlayerStateChange 
+                }
             });
             handleResize();
         }
 
+        // 유튜브 API 스크립트의 비동기 안전 로딩 방식 적용
+        (function loadYouTubeAPI() {
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        })();
+
         function onPlayerReady(event) {
-            // 접속 즉시 완벽한 무음 기동 (브라우저 차단 회피 핵심)
             event.target.mute();
-            event.target.playVideo();
+            event.target.playVideo(); // 접속 즉시 영상 기동
             
+            powerKnob.classList.add('on');
+            powerKnob.style.setProperty('--rotation', '45deg');
             noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
             
-            // * 초기에 원하셨던 흑백 필터 세팅
+            // * 흑백 필터 세팅
             playerContainer.style.filter = colorModes[currentColorIndex];
             handleResize();
         }
@@ -589,7 +599,7 @@
             else turnTvOff();
         }
 
-        // 오직 POWER 노브 클릭을 통해서만 전원 토글이 작동하도록 세팅
+        // POWER 노브 핸들러 연결
         powerKnob.addEventListener('click', togglePower);
 
         volumeKnob.addEventListener('click', () => {
@@ -598,12 +608,12 @@
             if (player.isMuted()) {
                 player.unMute();
                 volumeKnob.classList.add('unmuted');
-                volumeKnob.style.setProperty('--rotation', '135deg'); // 소리 켜짐 상태로 회전
+                volumeKnob.style.setProperty('--rotation', '135deg'); // 소리 켜짐 회전 피드백
                 unmuteMessage.classList.add('hidden');
             } else {
                 player.mute();
                 volumeKnob.classList.remove('unmuted');
-                volumeKnob.style.setProperty('--rotation', '0deg'); // 음소거 상태
+                volumeKnob.style.setProperty('--rotation', '0deg'); // 음소거 각도 원위치
             }
         });
 
@@ -640,7 +650,7 @@
             currentNoiseIndex = (currentNoiseIndex + 1) % noiseLevels.length;
             noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
             
-            // 아날로그 회전 매핑 (0, 60, 120, 180도)
+            // 아날로그 회전 매핑
             noiseKnob.style.setProperty('--rotation', `${currentNoiseIndex * 60}deg`);
         });
 
