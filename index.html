@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>My Old TV</title>
-    <!-- 레트로 느낌을 위한 폰트 -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
+    <title>My Old TV - Mona Pixel Edition</title>
     <style>
+        /* Mona12 도트 픽셀 폰트 로드 */
+        @import url('https://cdn.jsdelivr.net/gh/MonadABXY/mona-font/web/mona.css');
+
         /* * 전역 상자 크기 설정 및 전체 페이지 스타일 */
         * {
             box-sizing: border-box;
@@ -20,8 +19,9 @@
             justify-content: flex-start;
             align-items: center;
             min-height: 100vh;
-            background-color: #3d3d3d;
-            font-family: 'Gowun Dodum', sans-serif;
+            background-color: #2b2b2b;
+            font-family: 'Mona12', sans-serif;
+            font-weight: bold;
             margin: 0;
             overflow-x: hidden; /* 가로 스크롤 방지 */
             overflow-y: auto;   /* 세로 스크롤 허용 */
@@ -35,133 +35,205 @@
             align-items: flex-start;
             width: 100%;
             overflow: visible;
-            margin-top: 10px;
-            margin-bottom: 20px;
+            margin-top: 20px;
+            margin-bottom: 25px;
         }
 
         /* * TV 전체 컨테이너 (고정된 원본 비율 유지) */
         .tv-container {
-            width: 770px; /* 오리지널 TV 전체 가로 크기 기준 */
+            width: 790px; /* 오리지널 TV 전체 가로 크기 기준 */
             flex-shrink: 0;
             margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             transform-origin: top center;
+            position: relative;
         }
 
-        /* * TV 본체 스타일 */
+        /* * TV 상단 핸들 (빈티지 포터블 TV 아이덴티티) */
+        .tv-handle {
+            width: 220px;
+            height: 25px;
+            background: linear-gradient(to bottom, #4a473e, #2d2b25);
+            border-radius: 8px 8px 0 0;
+            border: 3px solid #7c7767;
+            border-bottom: none;
+            margin-bottom: -3px;
+            position: relative;
+            z-index: 1;
+            box-shadow: inset 0 4px 5px rgba(255, 255, 255, 0.2);
+        }
+        .tv-handle::before, .tv-handle::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            width: 24px;
+            height: 12px;
+            background: #5c584b;
+            border: 2px solid #7c7767;
+        }
+        .tv-handle::before { left: -22px; border-radius: 4px 0 0 4px; }
+        .tv-handle::after { right: -22px; border-radius: 0 4px 4px 0; }
+
+        /* * TV 본체 스타일 (Beige/Cream 사출 성형 느낌 재현) */
         .retro-tv {
-            width: 700px;
-            background: #5a3a29;
-            background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.03) 75%),
-                              linear-gradient(45deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.03) 75%);
-            background-size: 60px 60px;
-            background-position: 0 0, 30px 30px;
-            border: 10px solid #3e2723;
-            border-radius: 30px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 0 15px rgba(0, 0, 0, 0.7);
-            padding: 25px;
+            width: 770px;
+            height: 520px;
+            background: #eae5d7; /* 70년대 포터블 플라스틱 크림/베이지 */
+            background-image: linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            border: 12px solid #dfd9cb;
+            border-radius: 24px;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.6), 
+                inset 0 4px 0 rgba(255, 255, 255, 0.6),
+                inset 0 -6px 10px rgba(0, 0, 0, 0.15);
+            padding: 15px;
+            display: flex;
+            position: relative;
+            box-sizing: content-box;
+        }
+
+        /* * 왼쪽 브라운관 전면 베젤 (매트 블랙 프레임) */
+        .left-bezel {
+            width: 535px;
+            height: 100%;
+            background-color: #1a1a1a;
+            border-radius: 16px;
+            border: 6px solid #cbc5b5; /* 베젤 테두리 몰딩 */
+            padding: 12px;
             display: flex;
             flex-direction: column;
+            justify-content: space-between;
             align-items: center;
-            box-sizing: content-box;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.9);
         }
 
-        /* * 스크린 영역 */
+        /* * 실제 CRT 스크린 하우징 */
         .screen {
-            width: 640px;
-            height: 480px;
-            background-color: #000;
-            border-radius: 20px;
+            width: 500px;
+            height: 375px; /* 4:3 비율의 CRT 화면 표준 */
+            background-color: #030303;
+            border-radius: 35px; /* 둥근 곡률의 브라운관 */
             position: relative;
             overflow: hidden;
-            border: 15px solid #2d2d2d;
-            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
-            box-sizing: content-box;
+            border: 10px solid #2d2d2d;
+            box-shadow: 
+                0 0 15px rgba(0, 0, 0, 1),
+                inset 0 0 30px rgba(0, 0, 0, 0.9);
         }
 
-        /* 화면 유리의 빛 반사 효과 */
+        /* 화면 반사 유리막 입체 효과 */
         .screen::before {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            border-radius: 20px;
-            box-shadow: inset 5px 5px 10px rgba(255, 255, 255, 0.1), inset -5px -5px 10px rgba(0, 0, 0, 0.5);
+            border-radius: 25px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.1) 100%);
+            box-shadow: 
+                inset 8px 8px 12px rgba(255, 255, 255, 0.08), 
+                inset -8px -8px 12px rgba(0, 0, 0, 0.6);
             pointer-events: none;
             z-index: 4;
         }
+
+        /* * 녹색 인공 Phosphor 형태의 브라운관 On-Screen Display (OSD) 자막 시스템 */
+        .osd-text {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            color: #39ff14; /* 그린 형광 인광 */
+            font-family: 'Mona12', 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 0 0 6px rgba(57, 255, 20, 0.9), 0 0 2px rgba(57, 255, 20, 0.5);
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+            pointer-events: none;
+            letter-spacing: 1px;
+        }
         
-        /* * 브라운관 노이즈 효과 */
+        /* * 브라운관 미세 주사선 및 노이즈 효과 */
         .noise {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             z-index: 2;
             pointer-events: none;
             background: url('https://i.pinimg.com/originals/62/9c/cd/629ccd010ebe5be08a7bde5da6f7332c.gif') center/cover;
-            opacity: 0.1;
+            opacity: 0.12;
             transition: opacity 0.3s;
         }
         
-        /* 채널 변경 시 노이즈 효과 */
+        /* 채널 전환 시 지직거리는 효과 */
         .channel-change-effect {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             background: url('https://i.pinimg.com/originals/62/9c/cd/629ccd010ebe5be08a7bde5da6f7332c.gif') center/cover;
             z-index: 10;
             display: none;
-            opacity: 0.8;
+            opacity: 0.85;
         }
 
-        /* 유튜브 플레이어 영역 (유효한 ID를 타겟팅하여 필터를 적용할 수 있게 구성) */
-        #player-container {
+        /* * 유튜브 플레이어 필터 랩퍼 (유튜브 API 리빌딩 시 스타일 유실 방지 가드) */
+        #player-filter-wrapper {
             position: absolute;
-            top: 50%; left: 50%;
+            top: 0; left: 0;
             width: 100%; height: 100%;
-            transform: translate(-50%, -50%);
             z-index: 1;
-            filter: grayscale(100%); /* 처음 접속 시 CSS 흑백 필터 작동 */
-            transition: opacity 0.2s, filter 0.4s;
+            /* 기본 세팅: 흑백(Grayscale) + 사용자 정의 RGB 매트릭스 필터 결합 */
+            filter: grayscale(100%) url(#rgb-matrix); 
+            transition: filter 0.4s ease-in-out;
         }
 
-        /* TV 꺼짐 효과 */
+        #player-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* TV 화면 꺼짐 및 가로선 연출 오버레이 */
         #power-off-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             background: #000;
             z-index: 15;
-            display: none; /* 꺼질 때만 flex로 변경 */
+            display: none;
             align-items: center;
             justify-content: center;
-            pointer-events: none; /* 꺼져있을 때 터치 오동작 완벽 방지 */
+            pointer-events: none;
         }
 
         #power-off-line {
             width: 0%;
-            height: 3px;
+            height: 4px;
             background: #fff;
-            box-shadow: 0 0 10px #fff, 0 0 20px #fff;
+            box-shadow: 0 0 10px #fff, 0 0 25px #fff;
             transition: width 0.3s ease-in-out;
-            display: none;
         }
 
-        /* 소리 켜기 안내 메시지 */
+        /* 소리 켜기 안내 배너 */
         #unmute-message {
             position: absolute;
-            bottom: 20px;
+            bottom: 25px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.7);
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 10px;
+            background-color: rgba(0, 0, 0, 0.85);
+            border: 1px solid #ffcc00;
+            color: #ffcc00;
+            padding: 8px 16px;
+            border-radius: 8px;
             z-index: 5;
-            font-size: 16px;
+            font-size: 11px;
             text-align: center;
             opacity: 1;
             transition: opacity 0.5s;
             white-space: nowrap;
             pointer-events: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            font-family: 'Mona12', sans-serif;
+            font-weight: bold;
         }
 
         #unmute-message.hidden {
@@ -169,112 +241,261 @@
             pointer-events: none;
         }
 
-        /* 컨트롤 패널 */
-        .controls {
+        /* * 하단 조율 휠 영역 (R, G, B 미세조정 노브 구현) */
+        .bottom-shelf {
             width: 100%;
+            height: 45px;
             display: flex;
-            justify-content: flex-end;
+            justify-content: center;
             align-items: center;
-            padding: 20px 10px 10px 10px;
+            gap: 40px;
+            border-top: 1px solid #2d2d2d;
+            padding-top: 10px;
         }
 
-        .speaker-grill {
-            width: 80px; height: 80px;
-            background: repeating-linear-gradient(to bottom, #444, #444 2px, #333 2px, #333 4px);
-            border-radius: 5px;
-            margin-right: auto;
-            border: 2px solid #222;
+        .shelf-knob-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .knob-group { display: flex; align-items: center; }
-        
-        /* * 회전 값을 CSS 변수(--rotation)로 제어하여 물리 회전 구현 */
-        .knob {
-            --rotation: 0deg;
-            width: 45px; height: 45px;
-            background: linear-gradient(145deg, #e0e0e0, #a0a0a0);
+        .shelf-knob-label {
+            color: #9c988d;
+            font-size: 9px;
+            font-weight: bold;
+            font-family: 'Mona12', sans-serif;
+            letter-spacing: 1px;
+            text-shadow: 0 -1px 0 #000;
+        }
+
+        /* * 미세조정 가변 노브 */
+        .shelf-knob {
+            --rotation: 0deg; /* -150deg ~ 150deg 범위 회전 */
+            width: 25px;
+            height: 25px;
+            background: linear-gradient(135deg, #3a3a3a, #111);
+            border: 2px solid #444;
             border-radius: 50%;
-            border: 3px solid #555;
-            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3), inset 0 0 5px rgba(0, 0, 0, 0.5);
-            margin-left: 10px;
             position: relative;
             transform: rotate(var(--rotation));
-            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.2s;
+            transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
             cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
         }
-        
-        .knob:active { 
-            transform: rotate(calc(var(--rotation) + 15deg)) scale(0.93); 
-        }
-        
-        .knob.unmuted {
-            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3), inset 0 0 5px rgba(0, 0, 0, 0.5), 0 0 15px #fff3b0;
-        }
-
-        #power-knob.on {
-             box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3), inset 0 0 5px rgba(0, 0, 0, 0.5), 0 0 15px #ff8a80;
-        }
-
-        /* 노브의 눈금 선 */
-        .knob::after {
+        .shelf-knob::after {
             content: '';
             position: absolute;
-            top: 5px; left: 50%;
+            top: 2px;
+            left: 50%;
             transform: translateX(-50%);
-            width: 4px; height: 12px;
-            background-color: #444;
-            border-radius: 2px;
+            width: 3px;
+            height: 7px;
+            background-color: #ff3b30; /* 붉은 눈금 선 */
+            border-radius: 1px;
         }
-        
-        .knob-label {
-            color: #ccc;
-            font-size: 11px;
-            text-align: center;
-            margin-top: 55px;
-            position: absolute;
-            width: 100%;
-            left: 0;
+        .shelf-knob.g-tint::after { background-color: #4cd964; }
+        .shelf-knob.b-tint::after { background-color: #007aff; }
+
+        /* * 우측 컨트롤 패널 영역 (빈티지 알루미늄 플레이트 질감) */
+        .right-bezel {
+            width: 190px;
+            height: 100%;
+            background-color: #ded9cb;
+            margin-left: 15px;
+            border-radius: 16px;
+            border: 6px solid #b8b3a5;
+            padding: 15px 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.5), 0 4px 10px rgba(0,0,0,0.1);
         }
 
+        /* 상단 소형 튜너 & 스위치 배치 */
+        .top-sub-controls {
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-bottom: 2px solid #cbc5b5;
+            padding-bottom: 12px;
+        }
+
+        /* 빨간색 푸시 전원 버튼 */
+        .power-btn-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .power-button {
+            width: 26px;
+            height: 26px;
+            background: linear-gradient(135deg, #ff453a, #bf1a1a);
+            border: 3px solid #7c1212;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.4);
+            transition: transform 0.1s;
+        }
+        .power-button:active {
+            transform: scale(0.9);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+        }
+        .power-button.on {
+            background: linear-gradient(135deg, #ff6b6b, #ff453a);
+            box-shadow: 0 0 12px #ff453a, inset 0 1px 2px rgba(255,255,255,0.6);
+            border-color: #ffdad6;
+        }
+
+        .sub-knob {
+            --rotation: 0deg;
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #ece9e0, #a09d94);
+            border: 2px solid #666;
+            border-radius: 50%;
+            position: relative;
+            transform: rotate(var(--rotation));
+            transition: transform 0.3s;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .sub-knob::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 50%;
+            transform: translateX(-50%);
+            width: 2px; height: 8px;
+            background-color: #222;
+        }
+
+        .control-label {
+            font-size: 8px;
+            font-weight: bold;
+            font-family: 'Mona12', sans-serif;
+            color: #5c5950;
+            text-align: center;
+            margin-top: 4px;
+        }
+
+        /* * 중단 메인 채널 선택 튜너 (거대 기계식 노브 구현) */
+        .main-tuners {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .tuner-outer {
+            width: 82px;
+            height: 82px;
+            background: radial-gradient(circle, #333 50%, #111 100%);
+            border-radius: 50%;
+            border: 4px solid #b3ad9f;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        /* 큰 기계 다이얼 */
+        .large-dial {
+            --rotation: 0deg;
+            width: 68px;
+            height: 68px;
+            background: linear-gradient(135deg, #111 0%, #3a3a3a 45%, #111 100%);
+            border-radius: 50%;
+            border: 3px solid #555;
+            position: relative;
+            transform: rotate(var(--rotation));
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            box-shadow: inset 0 2px 5px rgba(255,255,255,0.2), 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        /* 다이얼 파지용 일자 기둥 바 */
+        .large-dial::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 14px;
+            height: 52px;
+            background: linear-gradient(to right, #444, #888, #222);
+            border-radius: 3px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* 다이얼 장식 채널 숫자 표시구 기판 */
+        .tuner-num-label {
+            font-size: 8px;
+            font-family: 'Mona12', sans-serif;
+            color: #4a473e;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+
+        /* * 하단 빈티지 가로 스피커 그릴 (다크 우드 몰딩) */
+        .speaker-grill {
+            width: 100%;
+            height: 110px;
+            background: repeating-linear-gradient(to bottom, #2b2923, #2b2923 3px, #1a1915 3px, #1a1915 6px);
+            border-radius: 8px;
+            border: 3px solid #b8b3a5;
+            box-shadow: inset 0 3px 8px rgba(0,0,0,0.8);
+        }
+
+        /* TV 하단 스탠드 다리 지지대 */
         .tv-legs {
-            width: 750px;
-            margin: -10px auto 0 auto;
+            width: 780px;
+            margin-top: -12px;
             display: flex;
             justify-content: space-between;
             position: relative;
-            z-index: -1;
+            z-index: -2;
+            padding: 0 30px;
         }
 
         .leg {
-            width: 20px; height: 100px;
-            background: #4a2a19;
+            width: 28px;
+            height: 60px;
+            background: linear-gradient(to bottom, #4a473e, #2b2923);
+            border-radius: 4px;
+            border: 3px solid #6c6757;
             transform-origin: top center;
         }
-        .leg.left { transform: rotate(10deg); }
-        .leg.right { transform: rotate(-10deg); }
+        .leg.left { transform: rotate(18deg); }
+        .leg.right { transform: rotate(-18deg); }
 
-        /* * 하단 컨트롤 패널 스타일 */
+        /* * 하단 사용자 컨트롤 박스 스타일 */
         .custom-controls {
-            background-color: #4a2a19;
+            background-color: #eae5d7;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             width: 100%;
             max-width: 600px;
-            margin-top: 10px;
-            border: 3px solid #3e2723;
+            margin-top: 5px;
+            border: 4px solid #dfd9cb;
         }
 
         .custom-controls input {
             width: 100%;
             padding: 12px;
-            border: 2px solid #333;
-            border-radius: 5px;
-            background-color: #eee;
+            border: 2px solid #b8b3a5;
+            border-radius: 6px;
+            background-color: #fcfbfa;
             color: #333;
-            font-family: 'Gowun Dodum', sans-serif;
+            font-family: 'Mona12', sans-serif;
+            font-weight: bold;
             margin-bottom: 12px;
-            font-size: 14px;
+            font-size: 11px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
         }
 
         .custom-controls .button-group {
@@ -286,37 +507,39 @@
             flex: 1;
             padding: 12px 10px;
             border: none;
-            border-radius: 5px;
-            background: linear-gradient(145deg, #e0e0e0, #a0a0a0);
-            color: #333;
-            font-family: 'Gowun Dodum', sans-serif;
+            border-radius: 6px;
+            background: linear-gradient(180deg, #fcfbfa, #dcd7c9);
+            color: #4a473e;
+            font-family: 'Mona12', sans-serif;
             font-weight: bold;
-            font-size: 13px;
+            font-size: 11px;
             cursor: pointer;
-            border: 2px solid #555;
-            box-shadow: 0 3px 5px rgba(0,0,0,0.3);
+            border: 2px solid #b8b3a5;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.15);
             transition: all 0.1s ease-in-out;
             white-space: nowrap;
         }
         
         .custom-controls button:active {
             transform: translateY(2px);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
         
         #share-link-display {
             margin-top: 12px;
-            background-color: #333;
+            background-color: #2b2923;
             padding: 8px;
-            border-radius: 5px;
+            border-radius: 6px;
             color: #a5d6a7;
-            font-size: 12px;
+            font-size: 11px;
+            font-family: 'Mona12', sans-serif;
+            font-weight: bold;
             text-align: center;
             min-height: 18px;
             word-break: break-all;
         }
 
-        /* 모바일 반응형 커스텀 셋팅 */
+        /* 모바일 최적화 미디어 쿼리 */
         @media (max-width: 500px) {
             body {
                 padding: 10px 5px;
@@ -338,49 +561,100 @@
 </head>
 <body>
 
-    <!-- TV 비율을 비례 축소시키는 스케일러 컨테이너 -->
+    <!-- 유튜브 비디오 프레임에 입힐 하드웨어 RGB 합성용 SVG 메트릭스 필터 정의 -->
+    <svg style="position: absolute; width: 0; height: 0;" width="0" height="0">
+      <defs>
+        <filter id="rgb-matrix">
+          <feColorMatrix type="matrix" id="matrix-values" values="
+            1.0 0.0 0.0 0.0 0.0
+            0.0 1.0 0.0 0.0 0.0
+            0.0 0.0 1.0 0.0 0.0
+            0.0 0.0 0.0 1.0 0.0" />
+        </filter>
+      </defs>
+    </svg>
+
+    <!-- TV를 모바일 가로 너비에 맞게 왜곡 없이 비율 축소하는 스케일러 박스 -->
     <div class="tv-scaler">
         <div class="tv-container">
+            <!-- 고전 포터블 TV 특유의 손잡이 아키텍처 -->
+            <div class="tv-handle"></div>
+            
             <div class="retro-tv">
-                <div class="screen">
-                    <div id="unmute-message">VOLUME 노브를 클릭하면 소리가 켜집니다</div>
-                    <div id="power-off-overlay">
-                        <div id="power-off-line"></div>
+                <!-- 좌측 메인 브라운관 영역 -->
+                <div class="left-bezel">
+                    <div class="screen">
+                        <!-- 복고풍 녹색 Phosphor OSD 지시창 -->
+                        <div id="osd" class="osd-text">R-TINT: 100%</div>
+                        <div id="unmute-message">VOLUME 노브(볼륨 다이얼)를 클릭하면 소리가 켜집니다</div>
+                        <div id="power-off-overlay">
+                            <div id="power-off-line"></div>
+                        </div>
+                        <div class="channel-change-effect"></div>
+                        <div class="noise"></div>
+                        <!-- 필터 결합 안전 래퍼 -->
+                        <div id="player-filter-wrapper">
+                            <div id="player-container"></div>
+                        </div>
                     </div>
-                    <div class="channel-change-effect"></div>
-                    <div class="noise"></div>
-                    <div id="player-container"></div>
+                    
+                    <!-- CRT 하단 베젤의 3개 미세 튜닝 RGB 다이얼 -->
+                    <div class="bottom-shelf">
+                        <div class="shelf-knob-wrapper">
+                            <span class="shelf-knob-label">R-TINT</span>
+                            <div class="shelf-knob r-tint" id="r-knob" style="--rotation: 0deg;"></div>
+                        </div>
+                        <div class="shelf-knob-wrapper">
+                            <span class="shelf-knob-label">G-TINT</span>
+                            <div class="shelf-knob g-tint" id="g-knob" style="--rotation: 0deg;"></div>
+                        </div>
+                        <div class="shelf-knob-wrapper">
+                            <span class="shelf-knob-label">B-TINT</span>
+                            <div class="shelf-knob b-tint" id="b-knob" style="--rotation: 0deg;"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="controls">
-                    <div class="speaker-grill"></div>
-                    <div class="knob-group">
-                        <div style="position: relative; text-align: center;">
-                            <div class="knob on" id="power-knob" style="--rotation: 45deg;"></div>
-                            <span class="knob-label">POWER</span>
+
+                <!-- 우측 컨트롤러 플레이트 영역 -->
+                <div class="right-bezel">
+                    <div class="top-sub-controls">
+                        <div class="power-btn-wrapper">
+                            <div class="power-button on" id="power-btn"></div>
+                            <span class="control-label">POWER</span>
                         </div>
-                        <div style="position: relative; text-align: center;">
-                            <div class="knob" id="volume-knob" style="--rotation: 0deg;"></div>
-                            <span class="knob-label">VOLUME</span>
+                        <div style="text-align: center;">
+                            <div class="sub-knob" id="volume-knob" style="--rotation: 0deg;"></div>
+                            <span class="control-label">VOLUME</span>
                         </div>
-                         <div style="position: relative; text-align: center;">
-                            <div class="knob" id="channel-down-knob" style="--rotation: 0deg;"></div>
-                            <span class="knob-label">CH ▼</span>
+                        <div style="text-align: center;">
+                            <div class="sub-knob" id="noise-knob" style="--rotation: 60deg;"></div>
+                            <span class="control-label">STATIC</span>
                         </div>
-                        <div style="position: relative; text-align: center;">
-                            <div class="knob" id="channel-up-knob" style="--rotation: 0deg;"></div>
-                            <span class="knob-label">CH ▲</span>
-                        </div>
-                        <div style="position: relative; text-align: center;">
-                            <div class="knob" id="noise-knob" style="--rotation: 60deg;"></div>
-                            <span class="knob-label">NOISE</span>
-                        </div>
-                        <div style="position: relative; text-align: center;">
-                            <div class="knob" id="color-knob" style="--rotation: 0deg;"></div>
-                            <span class="knob-label">COLOR</span>
+                        <div style="text-align: center;">
+                            <div class="sub-knob" id="color-knob" style="--rotation: 0deg;"></div>
+                            <span class="control-label">COLOR</span>
                         </div>
                     </div>
+
+                    <!-- 2개의 초대형 아날로그 채널 셀렉터 (VHF/UHF 다이얼 재현) -->
+                    <div class="main-tuners">
+                        <div class="tuner-outer">
+                            <div class="large-dial" id="channel-up-dial" style="--rotation: 0deg;"></div>
+                        </div>
+                        <span class="tuner-num-label">CHANNEL ▲</span>
+
+                        <div class="tuner-outer">
+                            <div class="large-dial" id="channel-down-dial" style="--rotation: 0deg;"></div>
+                        </div>
+                        <span class="tuner-num-label">CHANNEL ▼</span>
+                    </div>
+
+                    <!-- 클래식 메탈 슬릿 스피커 그릴 -->
+                    <div class="speaker-grill"></div>
                 </div>
             </div>
+            
+            <!-- 포터블 스탠딩 다리 -->
             <div class="tv-legs">
                 <div class="leg left"></div>
                 <div class="leg right"></div>
@@ -388,7 +662,7 @@
         </div>
     </div>
 
-    <!-- 하단 영상 제어 패널 -->
+    <!-- 하단 영상 로드 및 유틸 박스 -->
     <div class="custom-controls">
         <input type="text" id="youtube-link-input" placeholder="유튜브 링크를 여기에 붙여넣으세요">
         <div class="button-group">
@@ -399,16 +673,22 @@
         <div id="share-link-display"></div>
     </div>
     
+    <!-- 아날로그 기계 스위치 소리 -->
     <audio id="knob-sound" src="data:audio/mpeg;base64,SUQzBAAAAAAAIVRYWENYAAAADklQTUNEUgAAABJDT01FAAAALAAAAGVuZ0lQTUNEUiBDb21tZW50AFhTU0gAAAAPTEFWRjU2LjM2LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAAAAACQABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBASw=="></audio>
     
     <script>
-        // DOM 요소 정의 (교체 위험이 없는 요소만 초기에 캐싱)
-        const powerKnob = document.getElementById('power-knob');
+        // DOM 요소 정의
+        const powerBtn = document.getElementById('power-btn');
         const volumeKnob = document.getElementById('volume-knob');
-        const channelDownKnob = document.getElementById('channel-down-knob');
-        const channelUpKnob = document.getElementById('channel-up-knob');
+        const channelDownDial = document.getElementById('channel-down-dial');
+        const channelUpDial = document.getElementById('channel-up-dial');
         const noiseKnob = document.getElementById('noise-knob');
         const colorKnob = document.getElementById('color-knob');
+        const rKnob = document.getElementById('r-knob');
+        const gKnob = document.getElementById('g-knob');
+        const bKnob = document.getElementById('b-knob');
+        const osd = document.getElementById('osd');
+        
         const autoChangeToggle = document.getElementById('auto-change-toggle');
         const noiseOverlay = document.querySelector('.noise');
         const channelEffect = document.querySelector('.channel-change-effect');
@@ -421,10 +701,10 @@
         const unmuteMessage = document.getElementById('unmute-message');
         const knobSound = document.getElementById('knob-sound');
 
-        // 유튜브 API 가 소스코드를 교체하더라도 항상 최신의 active <iframe> 에 접근할 수 있는 동적 헬퍼 함수
-        const getPlayerElement = () => document.getElementById('player-container');
+        // 필터 타겟팅 가드 컨테이너
+        const playerFilterWrapper = document.getElementById('player-filter-wrapper');
 
-        // 요청해주신 기본 채널 8개
+        // 지정해주신 기본 레트로 채널 8개 설정
         const defaultChannels = [
             '26S5jhVKK_I', // 채널 1
             '8zbpITJKUZg', // 채널 2
@@ -436,14 +716,21 @@
             'cKJeXF4te7U'  // 채널 8
         ];
         
-        const noiseLevels = [0, 0.1, 0.2, 0.4];
+        const noiseLevels = [0, 0.12, 0.25, 0.45];
         
-        // * 컬러 모드 순서: 흑백(Index 0) ➔ 컬러(Index 1) ➔ 세피아(Index 2)
-        const colorModes = ['grayscale(100%)', 'none', 'sepia(100%)'];
+        // * 프리셋 필터 배열 (초기값은 흑백 100%)
+        const colorPresets = ['grayscale(100%)', 'none', 'sepia(100%)'];
+        const presetNames = ['B&W', 'COLOR', 'SEPIA'];
         
         let currentChannelIndex = 0;
         let currentNoiseIndex = 1;
-        let currentColorIndex = 0; // 초기 상태: 흑백으로 시작
+        let currentColorPresetIndex = 0; // 시작값: 흑백(Index 0)
+        
+        // * RGB 미세조정 멀티플라이어 세팅 (1.0 = 100%)
+        let rMultiplier = 1.0;
+        let gMultiplier = 1.0;
+        let bMultiplier = 1.0;
+
         let chUpRotation = 0;
         let chDownRotation = 0;
         let player;
@@ -452,7 +739,18 @@
         let isTvOn = true; 
         let isAutoChangeOn = true;
 
-        /* * 모바일 화면 너비에 반응하여 TV 비율을 동적으로 완벽 보정하는 엔진 */
+        /* * OSD 메커니즘을 사용해 유저에게 다이얼 수치를 알려주는 함수 */
+        let osdTimeout;
+        function triggerOSD(text) {
+            osd.textContent = text;
+            osd.style.opacity = '1';
+            clearTimeout(osdTimeout);
+            osdTimeout = setTimeout(() => {
+                osd.style.opacity = '0';
+            }, 1500);
+        }
+
+        /* * 모바일 화면 너비에 대응하여 TV를 비율 파손 없이 스케일 압축하는 동적 연출 엔진 */
         function handleResize() {
             const scaler = document.querySelector('.tv-scaler');
             const container = document.querySelector('.tv-container');
@@ -460,10 +758,10 @@
 
             const windowWidth = window.innerWidth;
             const sidePadding = 20; 
-            const designWidth = 770; 
-            const designHeight = 750; 
+            const designWidth = 790; 
+            const designHeight = 580; // TV 본체 + 손잡이 + 다리 전체 영역 높이 추정값
 
-            let scale = 0.75; // 데스크톱 기본 축소 비율
+            let scale = 0.75; 
 
             if (windowWidth < designWidth) {
                 scale = (windowWidth - sidePadding) / designWidth;
@@ -479,7 +777,7 @@
         });
         document.addEventListener('DOMContentLoaded', handleResize);
 
-        // * 유튜브 API를 로딩하기 직전에 전역 준비 핸들러를 먼저 안전하게 선언합니다.
+        // * 전역 준비 핸들러를 선언하여 유튜브 스크립트 로드 타이밍 충돌을 완전 차단합니다.
         function onYouTubeIframeAPIReady() {
             const initialVideoId = getInitialVideoId();
             currentVideoId = initialVideoId;
@@ -493,8 +791,8 @@
                     'controls': 0, 
                     'rel': 0, 
                     'showinfo': 0, 
-                    'mute': 1,        // 모바일 웹 자동재생 허용을 위해 무음 기동
-                    'playsinline': 1,  // 모바일 가로채기 방지
+                    'mute': 1,        // 최신 크롬/사파리 무음 자동재생 우회 적용
+                    'playsinline': 1,  // 모바일 비디오 인라인 강제 재생
                     'enablejsapi': 1
                 },
                 events: { 
@@ -505,7 +803,7 @@
             handleResize();
         }
 
-        // 유튜브 API 스크립트 비동기 로드 실행
+        // 유튜브 API 스크립트 비동기 안전 탑재
         (function loadYouTubeAPI() {
             const tag = document.createElement('script');
             tag.src = "https://www.youtube.com/iframe_api";
@@ -515,17 +813,17 @@
 
         function onPlayerReady(event) {
             event.target.mute();
-            event.target.playVideo(); // 즉시 영상 기동
+            event.target.playVideo(); // 즉시 구동 성공!
             
-            powerKnob.classList.add('on');
-            powerKnob.style.setProperty('--rotation', '45deg');
+            powerBtn.classList.add('on');
             noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
             
-            // * 재생 성공 직후 실제 active iframe 요소에 초기 흑백(grayscale) 필터 스타일 삽입
-            const el = getPlayerElement();
-            if (el) {
-                el.style.filter = colorModes[currentColorIndex];
-            }
+            // 미세 튜닝 노브 회전 위치 표준인 100%(0도)로 기어 조율
+            updateTintKnobVisual('R');
+            updateTintKnobVisual('G');
+            updateTintKnobVisual('B');
+            
+            syncScreenFilters();
             handleResize();
         }
 
@@ -561,20 +859,36 @@
             knobSound.play();
         }
 
+        // * 화면의 프리셋 필터와 RGB 컬러 매트릭스를 실시간으로 통합 적용하는 함수
+        function syncScreenFilters() {
+            if (!playerFilterWrapper) return;
+            
+            // SVG 컬러매트릭스값 교체
+            const matrixValues = document.getElementById('matrix-values');
+            if (matrixValues) {
+                matrixValues.setAttribute('values', `
+                    ${rMultiplier.toFixed(2)} 0.0 0.0 0.0 0.0
+                    0.0 ${gMultiplier.toFixed(2)} 0.0 0.0 0.0
+                    0.0 0.0 ${bMultiplier.toFixed(2)} 0.0 0.0
+                    0.0 0.0 0.0 1.0 0.0
+                `);
+            }
+
+            // 프리셋 지정 및 RGB 커스텀 매트릭스 필터를 복합 결합
+            const preset = colorPresets[currentColorPresetIndex];
+            playerFilterWrapper.style.filter = `${preset} url(#rgb-matrix)`;
+        }
+
         // TV 전원 끄기
         function turnTvOff() {
             if (player) {
                 player.pauseVideo();
             }
-            const el = getPlayerElement();
-            if (el) {
-                el.style.opacity = '0';
-            }
+            playerFilterWrapper.style.opacity = '0';
             powerOffLine.style.display = 'none';
             powerOffOverlay.style.display = 'flex';
             
-            powerKnob.classList.remove('on');
-            powerKnob.style.setProperty('--rotation', '0deg');
+            powerBtn.classList.remove('on');
             unmuteMessage.classList.add('hidden');
         }
 
@@ -587,10 +901,7 @@
             setTimeout(() => { powerOffLine.style.width = '100%'; }, 10);
             setTimeout(() => {
                 powerOffOverlay.style.display = 'none';
-                const el = getPlayerElement();
-                if (el) {
-                    el.style.opacity = '1';
-                }
+                playerFilterWrapper.style.opacity = '1';
                 
                 if (player) {
                     player.playVideo();
@@ -599,55 +910,56 @@
                 if(player && !player.isMuted()) unmuteMessage.classList.add('hidden');
                 else unmuteMessage.classList.remove('hidden');
             }, 300);
-            powerKnob.classList.add('on');
-            powerKnob.style.setProperty('--rotation', '45deg');
+            powerBtn.classList.add('on');
         }
 
-        function togglePower() {
+        // 기계식 푸시 전원 스위치 이벤트 바인딩
+        powerBtn.addEventListener('click', () => {
             playKnobSound();
             isTvOn = !isTvOn;
             if (isTvOn) turnTvOn();
             else turnTvOff();
-        }
+        });
 
-        // POWER 노브 핸들러 연결
-        powerKnob.addEventListener('click', togglePower);
-
+        // 우측 VOLUME 튜너 (소리 토글 및 로테이션)
         volumeKnob.addEventListener('click', () => {
             if (!isTvOn || !player) return;
             playKnobSound();
             if (player.isMuted()) {
                 player.unMute();
                 volumeKnob.classList.add('unmuted');
-                volumeKnob.style.setProperty('--rotation', '135deg'); // 소리 켜짐 회전 피드백
+                volumeKnob.style.setProperty('--rotation', '135deg'); // 켜짐 방향 회전
                 unmuteMessage.classList.add('hidden');
+                triggerOSD('SOUND: ON');
             } else {
                 player.mute();
                 volumeKnob.classList.remove('unmuted');
-                volumeKnob.style.setProperty('--rotation', '0deg'); // 음소거 각도 원위치
+                volumeKnob.style.setProperty('--rotation', '0deg'); // 제자리
+                triggerOSD('SOUND: MUTE');
             }
         });
 
-        channelUpKnob.addEventListener('click', () => changeChannel('up'));
-        channelDownKnob.addEventListener('click', () => changeChannel('down'));
+        // 대형 기계식 채널 다이얼 회전 연계 변경 기법
+        channelUpDial.addEventListener('click', () => changeChannel('up'));
+        channelDownDial.addEventListener('click', () => changeChannel('down'));
 
         function changeChannel(direction) {
             if (!isTvOn || !player) return;
             playKnobSound();
             channelEffect.style.display = 'block';
 
-            // 채널 노브 회전각 증감
             if (direction === 'up') {
                 currentChannelIndex = (currentChannelIndex + 1) % defaultChannels.length;
-                chUpRotation += 45;
-                channelUpKnob.style.setProperty('--rotation', `${chUpRotation}deg`);
+                chUpRotation += 30; // 딸깍하며 30도씩 순방향 회전
+                channelUpDial.style.setProperty('--rotation', `${chUpRotation}deg`);
             } else {
                 currentChannelIndex = (currentChannelIndex - 1 + defaultChannels.length) % defaultChannels.length;
-                chDownRotation -= 45;
-                channelDownKnob.style.setProperty('--rotation', `${chDownRotation}deg`);
+                chDownRotation -= 30; // 딸깍하며 30도씩 역방향 회전
+                channelDownDial.style.setProperty('--rotation', `${chDownRotation}deg`);
             }
             
             const nextVideoId = defaultChannels[currentChannelIndex];
+            triggerOSD(`CH: ${currentChannelIndex + 1}`);
             
             setTimeout(() => {
                 loadVideoById(nextVideoId);
@@ -655,32 +967,69 @@
             }, 500);
         }
 
+        // 노이즈(STATIC) 튜너 조작
         noiseKnob.addEventListener('click', () => {
             if (!isTvOn) return;
             playKnobSound();
             currentNoiseIndex = (currentNoiseIndex + 1) % noiseLevels.length;
             noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
             
-            // 아날로그 회전 매핑
             noiseKnob.style.setProperty('--rotation', `${currentNoiseIndex * 60}deg`);
+            triggerOSD(`STATIC: ${Math.round(noiseLevels[currentNoiseIndex] * 100)}%`);
         });
 
-        // * COLOR 조절기 (동적 엘리먼트 쿼리로 버그 완벽 대처!)
+        // COLOR 프리셋 튜너 조작 (Grayscale ➔ None ➔ Sepia)
         colorKnob.addEventListener('click', () => {
             if (!isTvOn) return;
             playKnobSound();
-            currentColorIndex = (currentColorIndex + 1) % colorModes.length;
+            currentColorPresetIndex = (currentColorPresetIndex + 1) % colorPresets.length;
             
-            // 실시간으로 유튜브 active iframe 객체에 CSS 필터 인젝션
-            const el = getPlayerElement();
-            if (el) {
-                el.style.filter = colorModes[currentColorIndex];
-            }
-            
-            // 컬러 노브 물리 회전 매핑 (0도[흑백] ➔ 120도[컬러] ➔ 240도[세피아])
-            colorKnob.style.setProperty('--rotation', `${currentColorIndex * 120}deg`);
+            syncScreenFilters();
+            colorKnob.style.setProperty('--rotation', `${currentColorPresetIndex * 120}deg`);
+            triggerOSD(`PRESET: ${presetNames[currentColorPresetIndex]}`);
         });
 
+        // * 하단 미세조정 RGB TINT 노브 각도 제어 함수 (표준 볼륨 레귤레이터 형식: 0.0 = -150도 / 1.0 = 0도 / 2.0 = 150도)
+        function updateTintKnobVisual(channel) {
+            let targetKnob, value;
+            if (channel === 'R') { targetKnob = rKnob; value = rMultiplier; }
+            else if (channel === 'G') { targetKnob = gKnob; value = gMultiplier; }
+            else if (channel === 'B') { targetKnob = bKnob; value = bMultiplier; }
+            
+            // 0.0 ~ 2.0 의 실수 범위를 -150deg ~ 150deg 아날로그 저항 회전 각도로 선형 사상
+            const degree = (value * 150) - 150;
+            targetKnob.style.setProperty('--rotation', `${degree}deg`);
+        }
+
+        // * 하단 미세조정 RGB TINT 다이얼을 10% 단위(0.1씩)로 가변 조절하는 이벤트 제어 
+        function rotateTintKnob(channel) {
+            if (!isTvOn) return;
+            playKnobSound();
+
+            if (channel === 'R') {
+                // 10% 증가, 200%(2.0) 초과 시 다시 0%(0.0) 로 순환
+                rMultiplier = (rMultiplier >= 2.0) ? 0.0 : Math.round((rMultiplier + 0.1) * 10) / 10;
+                updateTintKnobVisual('R');
+                triggerOSD(`R-TINT: ${Math.round(rMultiplier * 100)}%`);
+            } else if (channel === 'G') {
+                gMultiplier = (gMultiplier >= 2.0) ? 0.0 : Math.round((gMultiplier + 0.1) * 10) / 10;
+                updateTintKnobVisual('G');
+                triggerOSD(`G-TINT: ${Math.round(gMultiplier * 100)}%`);
+            } else if (channel === 'B') {
+                bMultiplier = (bMultiplier >= 2.0) ? 0.0 : Math.round((bMultiplier + 0.1) * 10) / 10;
+                updateTintKnobVisual('B');
+                triggerOSD(`B-TINT: ${Math.round(bMultiplier * 100)}%`);
+            }
+
+            // 실시간 뷰 필터 갱신 렌더링
+            syncScreenFilters();
+        }
+
+        rKnob.addEventListener('click', () => rotateTintKnob('R'));
+        gKnob.addEventListener('click', () => rotateTintKnob('G'));
+        bKnob.addEventListener('click', () => rotateTintKnob('B'));
+
+        // 유틸리티 설정
         autoChangeToggle.addEventListener('click', () => {
             isAutoChangeOn = !isAutoChangeOn;
             autoChangeToggle.textContent = `자동 채널 변경: ${isAutoChangeOn ? '켜짐' : '꺼짐'}`;
