@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>My Old TV - Mona Wikipedia Static Edition</title>
+    <title>My Old TV - Vintage Numeric OSD Edition</title>
     <style>
         /* Mona12 도트 픽셀 폰트 로드 */
         @import url('https://cdn.jsdelivr.net/gh/MonadABXY/mona-font/web/mona.css');
@@ -143,21 +143,22 @@
         }
 
         /* * 녹색 인공 Phosphor 형태의 브라운관 On-Screen Display (OSD) 자막 시스템 */
+        /* 실제 아날로그 TV처럼 큼직하고 존재감 넘치는 크기로 튜닝 */
         .osd-text {
             position: absolute;
-            top: 20px;
-            right: 25px;
+            top: 25px;
+            right: 35px;
             color: #39ff14; /* 그린 형광 인광 */
-            font-size: 14px;
-            text-shadow: 0 0 6px rgba(57, 255, 20, 0.9), 0 0 2px rgba(57, 255, 20, 0.5);
+            font-size: 38px; 
+            text-shadow: 0 0 10px rgba(57, 255, 20, 1), 0 0 3px rgba(57, 255, 20, 0.6);
             z-index: 10;
             opacity: 0;
-            transition: opacity 0.2s ease-in-out;
+            transition: opacity 0.15s ease-in-out;
             pointer-events: none;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
         }
         
-        /* * 위키미디어 공용의 검증된 백색소음 GIF 노이즈 레이어 (절대 끊기거나 누락되지 않는 강력한 가드가 적용됨) */
+        /* * 위키미디어 공용의 검증된 백색소음 GIF 노이즈 레이어 */
         .noise {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -569,8 +570,8 @@
                 <!-- 좌측 메인 브라운관 영역 -->
                 <div class="left-bezel">
                     <div class="screen">
-                        <!-- 복고풍 녹색 Phosphor OSD 지시창 -->
-                        <div id="osd" class="osd-text">GRAYSCALE: 100%</div>
+                        <!-- 복고풍 녹색 Phosphor OSD 지시창 (아날로그 TV 채널 숫자 구현) -->
+                        <div id="osd" class="osd-text">1</div>
                         <div id="unmute-message">VOLUME 다이얼(아래쪽 큰 노브)을 클릭해 볼륨을 올려주세요</div>
                         <div id="power-off-overlay">
                             <div id="power-off-line"></div>
@@ -646,7 +647,7 @@
 
     <!-- 하단 영상 로드 및 유틸 박스 -->
     <div class="custom-controls">
-        <input type="text" id="youtube-link-input" placeholder="유튜브 링크를 여기에 붙여넣으세요">
+        <input type="text" id="youtube-link-input" placeholder="유튜브 링크 또는 비디오 ID를 붙여넣으세요">
         <div class="button-group">
             <button id="load-video-btn">영상 불러오기</button>
             <button id="create-share-link-btn">공유 링크 만들기</button>
@@ -736,7 +737,8 @@
         let currentVideoId = '';
         let isTvOn = true; 
         let isAutoChangeOn = true;
-        let player; 
+        let player = null; 
+        let isPlayerReady = false; 
 
         /* * 녹색 OSD 디스플레이 알림 기능 */
         let osdTimeout;
@@ -777,28 +779,58 @@
 
         // * 전역 준비 핸들러를 선언하여 유튜브 스크립트 로드 타이밍 충돌을 완전 차단합니다.
         function onYouTubeIframeAPIReady() {
-            const initialVideoId = getInitialVideoId();
-            currentVideoId = initialVideoId;
-            
-            player = new YT.Player('player-container', {
-                height: '100%',
-                width: '100%',
-                videoId: initialVideoId,
-                playerVars: { 
-                    'autoplay': 1, 
-                    'controls': 0, 
-                    'rel': 0, 
-                    'showinfo': 0, 
-                    'mute': 1,        // 모바일 자동재생 허용을 위해 무음 기동 필수
-                    'playsinline': 1,  // 모바일 인라인 재생 강제화
-                    'enablejsapi': 1,
-                    'origin': window.location.origin
-                },
-                events: { 
-                    'onReady': onPlayerReady, 
-                    'onStateChange': onPlayerStateChange 
-                }
-            });
+            initYouTubePlayer(getInitialVideoId());
+        }
+
+        // 유튜브 플레이어 초기화 엔진
+        function initYouTubePlayer(videoId) {
+            isPlayerReady = false;
+            if (player && typeof player.destroy === 'function') {
+                try { player.destroy(); } catch(e) {}
+            }
+
+            const container = document.getElementById('player-filter-wrapper');
+            container.innerHTML = '<div id="player-container"></div>';
+
+            try {
+                player = new YT.Player('player-container', {
+                    height: '100%',
+                    width: '100%',
+                    videoId: videoId,
+                    playerVars: { 
+                        'autoplay': 1, 
+                        'controls': 0, 
+                        'rel': 0, 
+                        'showinfo': 0, 
+                        'mute': 1,        // 모바일 자동재생 허용을 위해 무음 기동 필수
+                        'playsinline': 1,  // 모바일 인라인 재생 강제화
+                        'enablejsapi': 1,
+                        'origin': window.location.origin
+                    },
+                    events: { 
+                        'onReady': onPlayerReady, 
+                        'onStateChange': onPlayerStateChange 
+                    }
+                });
+            } catch (err) {
+                console.error("YouTube Player API init failed, using Direct Iframe Fallback", err);
+                fallbackDirectIframe(videoId);
+            }
+        }
+
+        // 유튜브 API가 차단되었을 때 100% 화면을 띄워주는 초정밀 폴백 시스템
+        function fallbackDirectIframe(videoId) {
+            isPlayerReady = false;
+            const wrapper = document.getElementById('player-filter-wrapper');
+            const isMuted = (currentVolume === 0) ? 1 : 0;
+            wrapper.innerHTML = `
+                <iframe id="fallback-iframe" 
+                        src="https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&rel=0&showinfo=0&mute=${isMuted}&playsinline=1&enablejsapi=1" 
+                        frameborder="0" 
+                        allow="autoplay; encrypted-media; picture-in-picture" 
+                        allowfullscreen 
+                        style="width: 100%; height: 100%; pointer-events: none;">
+                </iframe>`;
         }
 
         // 유튜브 API 스크립트 비동기 탑재
@@ -810,6 +842,7 @@
         })();
 
         function onPlayerReady(event) {
+            isPlayerReady = true;
             event.target.mute();
             event.target.setVolume(0);
             event.target.playVideo(); // 접속하자마자 즉시 구동!
@@ -837,6 +870,60 @@
             return urlParams.get('video') || defaultChannels[0];
         }
 
+        // * 초강력 유튜브 비디오 ID 분석기 (Shorts, Mobile, Raw ID 전부 파싱 완료)
+        function extractVideoId(url) {
+            if (!url) return null;
+            url = url.trim();
+
+            if (/^[a-zA-Z0-9_-]{11}$/.test(url)) {
+                return url;
+            }
+
+            const shortsRegex = /\/shorts\/([a-zA-Z0-9_-]{11})/;
+            const shortsMatch = url.match(shortsRegex);
+            if (shortsMatch) return shortsMatch[1];
+
+            const standardRegex = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+            const match = url.match(standardRegex);
+            if (match) return match[1];
+
+            return null;
+        }
+
+        // 만능 안전 비디오 불러오기 프로세스
+        function safeLoadVideo(videoId, isCustom = false) {
+            currentVideoId = videoId;
+            shareDisplay.textContent = '';
+            
+            // 실제 아날로그 TV 고증: 채널 변경 시 오직 채널 번호(숫자)만 OSD에 표시
+            // 커스텀 유튜브 비디오를 불러올 시에는 VCR 연결을 뜻하는 'AV' 문자를 깜빡임
+            if (isCustom) {
+                triggerOSD('AV');
+            } else {
+                triggerOSD(`${currentChannelIndex + 1}`);
+            }
+
+            // API가 완전히 정상 작동할 때
+            if (isPlayerReady && player && typeof player.loadVideoById === 'function') {
+                try {
+                    player.loadVideoById({
+                        videoId: videoId,
+                        startSeconds: 0
+                    });
+                    if (currentVolume === 0) {
+                        player.mute();
+                    } else {
+                        player.unMute();
+                        player.setVolume(currentVolume);
+                    }
+                } catch (e) {
+                    fallbackDirectIframe(videoId);
+                }
+            } else {
+                fallbackDirectIframe(videoId);
+            }
+        }
+
         // * 하단 노브 설정값에 따라 실시간 화면 필터 융합
         function syncScreenFilters() {
             if (!playerFilterWrapper) return;
@@ -854,32 +941,28 @@
 
         // * 다이얼 및 가변 저항 노브 각도 일제 정렬
         function updateKnobVisuals() {
-            // 채도 노브
             const colorDegree = (colorValue * 150) - 150;
             colorAdjustKnob.style.setProperty('--rotation', `${colorDegree}deg`);
 
-            // 흑백 비율 노브
             const grayscaleDegree = (grayscaleValue * 300) - 150;
             grayscaleAdjustKnob.style.setProperty('--rotation', `${grayscaleDegree}deg`);
 
-            // 대비 노브
             const contrastDegree = (contrastValue * 150) - 150;
             contrastAdjustKnob.style.setProperty('--rotation', `${contrastDegree}deg`);
 
-            // 볼륨 전용 다이얼 (-150도 ~ 150도 선형 매핑)
             const volumeDegree = (currentVolume / 100) * 300 - 150;
             volumeAdjustKnob.style.setProperty('--rotation', `${volumeDegree}deg`);
         }
 
         // TV 전원 끄기
         function turnTvOff() {
-            if (player && typeof player.pauseVideo === 'function') {
-                player.pauseVideo();
+            if (isPlayerReady && player && typeof player.pauseVideo === 'function') {
+                try { player.pauseVideo(); } catch(e) {}
             }
             playerFilterWrapper.style.opacity = '0';
             powerOffLine.style.display = 'none';
             powerOffOverlay.style.display = 'flex';
-            noiseOverlay.style.opacity = '0'; // 노이즈 완벽 은닉
+            noiseOverlay.style.opacity = '0'; 
             
             powerBtn.classList.remove('on');
             unmuteMessage.classList.add('hidden');
@@ -895,10 +978,10 @@
             setTimeout(() => {
                 powerOffOverlay.style.display = 'none';
                 playerFilterWrapper.style.opacity = '1';
-                noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex]; // 노이즈 재기동
+                noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex]; 
                 
-                if (player && typeof player.playVideo === 'function') {
-                    player.playVideo();
+                if (isPlayerReady && player && typeof player.playVideo === 'function') {
+                    try { player.playVideo(); } catch(e) {}
                 }
                 
                 if(currentVolume > 0) unmuteMessage.classList.add('hidden');
@@ -917,20 +1000,37 @@
 
         // * 하단 VOLUME 10% 단위 정밀 조절 전용 다이얼 조작
         volumeAdjustKnob.addEventListener('click', () => {
-            if (!isTvOn || !player || typeof player.setVolume !== 'function') return;
+            if (!isTvOn) return;
             playKnobSound();
 
             currentVolume = (currentVolume >= 100) ? 0 : currentVolume + 10;
 
             if (currentVolume === 0) {
-                player.mute();
-                triggerOSD('VOLUME: MUTE');
+                triggerOSD('MUTE');
                 unmuteMessage.classList.remove('hidden');
+                if (isPlayerReady && player && typeof player.mute === 'function') {
+                    try { player.mute(); } catch(e) {}
+                }
             } else {
-                player.unMute();
-                player.setVolume(currentVolume);
-                triggerOSD(`VOLUME: ${currentVolume}%`);
+                triggerOSD(`${currentVolume}%`);
                 unmuteMessage.classList.add('hidden');
+                if (isPlayerReady && player && typeof player.unMute === 'function') {
+                    try { 
+                        player.unMute(); 
+                        player.setVolume(currentVolume);
+                    } catch(e) {}
+                }
+            }
+
+            const fallbackIframe = document.getElementById('fallback-iframe');
+            if (fallbackIframe) {
+                const isMuted = (currentVolume === 0) ? 1 : 0;
+                const newSrc = `https://www.youtube.com/embed/${currentVideoId}?autoplay=1&controls=0&rel=0&showinfo=0&mute=${isMuted}&playsinline=1&enablejsapi=1`;
+                try {
+                    fallbackIframe.contentWindow.location.replace(newSrc);
+                } catch(e) {
+                    fallbackIframe.src = newSrc;
+                }
             }
 
             updateKnobVisuals();
@@ -943,24 +1043,17 @@
         });
 
         function changeChannel() {
-            if (!player || typeof player.loadVideoById !== 'function') return;
             playKnobSound();
             channelEffect.style.display = 'block';
 
-            // 기어 45도 회전 피드백
             currentChannelIndex = (currentChannelIndex + 1) % defaultChannels.length;
             chRotation += 45; 
             channelDial.style.setProperty('--rotation', `${chRotation}deg`);
             
             const nextVideoId = defaultChannels[currentChannelIndex];
-            currentVideoId = nextVideoId;
-            triggerOSD(`CH: ${currentChannelIndex + 1}`);
             
-            // 볼륨을 유지한 채 다음 비디오로 부드러운 Seamless 전환
-            player.loadVideoById({
-                videoId: nextVideoId,
-                startSeconds: 0
-            });
+            // 만능 안전 엔진으로 채널 변경 로딩 처리 (OSD는 숫자 하나만 깜빡임)
+            safeLoadVideo(nextVideoId, false);
             
             setTimeout(() => {
                 channelEffect.style.display = 'none';
@@ -975,7 +1068,7 @@
             
             noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
             noiseKnob.style.setProperty('--rotation', `${currentNoiseIndex * 60}deg`);
-            triggerOSD(`STATIC: ${Math.round(noiseLevels[currentNoiseIndex] * 100)}%`);
+            triggerOSD(`${Math.round(noiseLevels[currentNoiseIndex] * 100)}%`);
         });
 
         // 우측 PRESET 다이얼 조작 시 하단 가변저항 연계 갱신
@@ -1002,7 +1095,7 @@
             syncScreenFilters();
             
             colorKnob.style.setProperty('--rotation', `${currentPresetIndex * 120}deg`);
-            triggerOSD(`PRESET: ${presetNames[currentPresetIndex]}`);
+            triggerOSD(`${presetNames[currentPresetIndex]}`);
         });
 
         // * 하단 가변 튜너 COLOR 조작 (10% 단위)
@@ -1014,7 +1107,7 @@
             
             updateKnobVisuals();
             syncScreenFilters();
-            triggerOSD(`COLOR: ${Math.round(colorValue * 100)}%`);
+            triggerOSD(`${Math.round(colorValue * 100)}%`);
         });
 
         // * 하단 가변 튜너 GRAYSCALE 조작 (10% 단위)
@@ -1026,7 +1119,7 @@
             
             updateKnobVisuals();
             syncScreenFilters();
-            triggerOSD(`GRAYSCALE: ${Math.round(grayscaleValue * 100)}%`);
+            triggerOSD(`${Math.round(grayscaleValue * 100)}%`);
         });
 
         // * 하단 가변 튜너 CONTRAST 조작 (10% 단위)
@@ -1038,7 +1131,7 @@
             
             updateKnobVisuals();
             syncScreenFilters();
-            triggerOSD(`CONTRAST: ${Math.round(contrastValue * 100)}%`);
+            triggerOSD(`${Math.round(contrastValue * 100)}%`);
         });
 
         // 유틸리티 설정
@@ -1047,20 +1140,17 @@
             autoChangeToggle.textContent = `자동 채널 변경: ${isAutoChangeOn ? '켜짐' : '꺼짐'}`;
         });
 
+        // 영상 불러오기 버튼 클릭 핸들러 (만능 분석 & 안전 치환 탑재 완료)
         loadBtn.addEventListener('click', () => {
-            if (!isTvOn || !player || typeof player.loadVideoById !== 'function') return;
+            if (!isTvOn) return;
             const url = linkInput.value;
             const videoId = extractVideoId(url);
             if (videoId) {
-                currentVideoId = videoId;
-                player.loadVideoById({
-                    videoId: videoId,
-                    startSeconds: 0
-                });
+                safeLoadVideo(videoId, true); // 커스텀 로딩은 외부 비디오(VCR/AV)를 뜻하도록 세팅
                 linkInput.value = '';
-                triggerOSD('LOADING VIDEO...');
             } else {
-                shareDisplay.textContent = '유효하지 않은 유튜브 링크입니다.';
+                shareDisplay.textContent = '유효하지 않은 유튜브 링크입니다. (ID 11자리를 직접 적으셔도 됩니다)';
+                triggerOSD('ERR');
             }
         });
 
