@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>My Old TV - All-In-One Media Player Edition</title>
+    <title>My Old TV - Ultimate All-In-One Autoplay Edition</title>
     <!-- HLS.js 라이브러리 탑재로 .m3u8 IPTV 스트리밍 완벽 지원 -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>9
     <style>
         /* Mona12 도트 픽셀 폰트 로드 */
         @import url('https://cdn.jsdelivr.net/gh/MonadABXY/mona-font/web/mona.css');
@@ -213,7 +213,7 @@
             pointer-events: none; /* 사용자 직접 프레임 터치 방지 */
         }
 
-        /* IPTV(.m3u8) 및 MP4 재생용 HTML5 비디오 엘리먼트 */
+        /* IPTV(.m3u8) 및 MP4 재생용 HTML5 비디오 엘리먼트 (자동재생, 음소거, 인라인 재생 기본 셋업) */
         #hls-video {
             display: none;
             width: 100%;
@@ -605,7 +605,8 @@
                         <div id="player-filter-wrapper">
                             <!-- 유튜브 및 HTML5 비디오 다중 가속 시스템 -->
                             <div id="player-container"></div>
-                            <video id="hls-video" playsinline></video>
+                            <!-- 자동재생 강제 지원용 네이티브 비디오 구조 (playsinline, autoplay, muted 장착) -->
+                            <video id="hls-video" playsinline autoplay muted></video>
                         </div>
                     </div>
                     
@@ -671,7 +672,7 @@
 
     <!-- 하단 영상 로드 및 유틸 박스 -->
     <div class="custom-controls">
-        <input type="text" id="youtube-link-input" placeholder="유튜브 주소, IPTV(.m3u8) 링크, 혹은 비디오(MP4) 주소를 입력하세요">
+        <input type="text" id="youtube-link-input" placeholder="유튜브 주소, IPTV(.m3u8), 직접 비디오(MP4, WebM 등) 링크를 입력하세요">
         <div class="button-group">
             <button id="load-video-btn">영상 불러오기</button>
             <button id="create-share-link-btn">공유 링크 만들기</button>
@@ -732,7 +733,6 @@
         const hlsVideo = document.getElementById('hls-video');
 
         // 기본 제공 8개 채널 비디오 목록
-        // 채널 1, 채널 4 지정 영상 완벽 세팅 및 채널 8에 네이티브 테스트용 초고화질 구글 MP4 배치!
         const defaultChannels = [
             'aEecppc9c10', // 채널 1
             '8zbpITJKUZg', // 채널 2
@@ -741,7 +741,7 @@
             'S87sCX5Jjo0', // 채널 5
             '5vjD0d8D9Ec', // 채널 6
             'n0Z4KuYy2ro', // 채널 7
-            'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' // 채널 8 (MP4 고화질 실시간 데모!)
+            'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' // 채널 8 (기본 MP4 비디오 테스트 채널)
         ];
         
         // STATIC 노브 클릭 시 조절될 GIF 노이즈 레벨 단계 설정 (최대 60%까지 부드럽게 증가)
@@ -815,7 +815,18 @@
 
         // * 전역 준비 핸들러를 선언하여 유튜브 스크립트 로드 타이밍 충돌을 완전 차단합니다.
         function onYouTubeIframeAPIReady() {
-            initYouTubePlayer(getInitialVideoId());
+            const initial = getInitialVideoId();
+            // 공유 비디오나 초기 비디오가 IPTV/MP4 인 경우 예외 분석 처리
+            if (isM3u8Url(initial) || isMp4Url(initial)) {
+                // 백그라운드 구동을 위해 우선 유튜브 임시 기동
+                initYouTubePlayer(defaultChannels[0]);
+                // 즉시 해당 비디오 소스 가속 주입하여 자동재생 실행
+                setTimeout(() => {
+                    safeLoadVideo(initial, true);
+                }, 500);
+            } else {
+                initYouTubePlayer(initial);
+            }
         }
 
         // 유튜브 플레이어 초기화 엔진
@@ -980,6 +991,9 @@
                 hlsEngine = null;
             }
 
+            // 자동재생을 위한 사전 음량 제어 적용
+            syncHlsVolume();
+
             if (Hls.isSupported()) {
                 hlsEngine = new Hls();
                 hlsEngine.loadSource(m3u8Url);
@@ -1003,7 +1017,6 @@
                 });
             }
 
-            syncHlsVolume();
             triggerOSD('LIV', true);
         }
 
@@ -1022,11 +1035,14 @@
             // HLS 비디오 노출 시작
             hlsVideo.style.display = 'block';
 
-            // 이전 HLS 엔지 가동 차단
+            // 이전 HLS 엔진 가동 차단
             if (hlsEngine) {
                 hlsEngine.destroy();
                 hlsEngine = null;
             }
+
+            // 자동재생을 위한 사전 음량 제어 적용
+            syncHlsVolume();
 
             // 비디오 소스 교환 및 버퍼링 시작
             hlsVideo.src = videoUrl;
@@ -1036,8 +1052,6 @@
                     console.log("Auto-play blocked for direct file", err);
                 });
             }
-
-            syncHlsVolume();
         }
 
         // HLS 및 MP4 미디어 음량 실시간 제어부
