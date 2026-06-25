@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>My Old TV - Vintage Live Stream Edition</title>
+    <title>My Old TV - All-In-One Media Player Edition</title>
+    <!-- HLS.js 라이브러리 탑재로 .m3u8 IPTV 스트리밍 완벽 지원 -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         /* Mona12 도트 픽셀 폰트 로드 */
         @import url('https://cdn.jsdelivr.net/gh/MonadABXY/mona-font/web/mona.css');
@@ -142,8 +144,7 @@
             z-index: 4;
         }
 
-        /* * 녹색 인공 Phosphor 형태의 브라운관 On-Screen Display (OSD) 자막 시스템 */
-        /* 실제 아날로그 TV처럼 큼직하고 존재감 넘치는 크기로 튜닝 */
+        /* * 녹색 On-Screen Display (OSD) 자막 시스템 */
         .osd-text {
             position: absolute;
             top: 25px;
@@ -195,7 +196,7 @@
             opacity: 0.85;
         }
 
-        /* * 유튜브 플레이어 필터 랩퍼 */
+        /* * 유튜브 및 미디어 파일 통합 필터 랩퍼 */
         #player-filter-wrapper {
             position: absolute;
             top: 0; left: 0;
@@ -210,6 +211,16 @@
             width: 100%;
             height: 100%;
             pointer-events: none; /* 사용자 직접 프레임 터치 방지 */
+        }
+
+        /* IPTV(.m3u8) 및 MP4 재생용 HTML5 비디오 엘리먼트 */
+        #hls-video {
+            display: none;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #000;
+            pointer-events: none;
         }
 
         /* TV 화면 꺼짐 및 가로선 연출 오버레이 */
@@ -581,7 +592,7 @@
                 <!-- 좌측 메인 브라운관 영역 -->
                 <div class="left-bezel">
                     <div class="screen">
-                        <!-- 복고풍 녹색 Phosphor OSD 지시창 (아날로그 TV 채널 숫자 및 LIVE 상태 자동 출력) -->
+                        <!-- 복고풍 녹색 Phosphor OSD 지시창 -->
                         <div id="osd" class="osd-text">1</div>
                         <div id="unmute-message">VOLUME 다이얼(아래쪽 큰 노브)을 클릭해 볼륨을 올려주세요</div>
                         <div id="power-off-overlay">
@@ -592,7 +603,9 @@
                         <div class="noise" id="noise-overlay"></div>
                         <!-- 필터 가드 랩퍼 -->
                         <div id="player-filter-wrapper">
+                            <!-- 유튜브 및 HTML5 비디오 다중 가속 시스템 -->
                             <div id="player-container"></div>
+                            <video id="hls-video" playsinline></video>
                         </div>
                     </div>
                     
@@ -658,7 +671,7 @@
 
     <!-- 하단 영상 로드 및 유틸 박스 -->
     <div class="custom-controls">
-        <input type="text" id="youtube-link-input" placeholder="유튜브 링크, 라이브 링크, 혹은 비디오 ID를 입력하세요">
+        <input type="text" id="youtube-link-input" placeholder="유튜브 주소, IPTV(.m3u8) 링크, 혹은 비디오(MP4) 주소를 입력하세요">
         <div class="button-group">
             <button id="load-video-btn">영상 불러오기</button>
             <button id="create-share-link-btn">공유 링크 만들기</button>
@@ -716,18 +729,19 @@
         const unmuteMessage = document.getElementById('unmute-message');
 
         const playerFilterWrapper = document.getElementById('player-filter-wrapper');
+        const hlsVideo = document.getElementById('hls-video');
 
         // 기본 제공 8개 채널 비디오 목록
-        // 채널 1, 채널 4 지정 영상 완벽 세팅 및 채널 8에 24시간 실시간 음악 라이브 고정 배치!
+        // 채널 1, 채널 4 지정 영상 완벽 세팅 및 채널 8에 네이티브 테스트용 초고화질 구글 MP4 배치!
         const defaultChannels = [
-            'aEecppc9c10', // 채널 1 (지정 완료)
+            'aEecppc9c10', // 채널 1
             '8zbpITJKUZg', // 채널 2
             '8oXaCFzm9oc', // 채널 3
-            'm_5J0cVHLik', // 채널 4 (지정 완료)
+            'm_5J0cVHLik', // 채널 4
             'S87sCX5Jjo0', // 채널 5
             '5vjD0d8D9Ec', // 채널 6
             'n0Z4KuYy2ro', // 채널 7
-            'jfKfPfyJRdk'  // 채널 8 (테스트용 Lofi Girl 24시간 실시간 LIVE 스트리밍!)
+            'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' // 채널 8 (MP4 고화질 실시간 데모!)
         ];
         
         // STATIC 노브 클릭 시 조절될 GIF 노이즈 레벨 단계 설정 (최대 60%까지 부드럽게 증가)
@@ -754,11 +768,13 @@
 
         // 입력한 비디오가 Live 스트리밍 상태인지 감지하는 전역 플래그
         let isCurrentLive = false;
+        // 미디어 소스 모드 감지 플래그 (True: YouTube, False: HTML5 HLS/Direct Player)
+        let isYouTubeActive = true;
+        let hlsEngine = null;
 
         /* * 녹색 OSD 디스플레이 알림 기능 */
         let osdTimeout;
         function triggerOSD(text, forceLive = false) {
-            // 라이브 방송이 감지된 상태이거나 강제 라이브 연출 시 OSD에 깜빡이는 LIVE 태그 부여
             if (isCurrentLive || forceLive) {
                 osd.innerHTML = `<span class="osd-live-blink">LIV</span>`;
             } else {
@@ -810,7 +826,12 @@
             }
 
             const container = document.getElementById('player-filter-wrapper');
-            container.innerHTML = '<div id="player-container"></div>';
+            let ytElem = document.getElementById('player-container');
+            if (!ytElem) {
+                ytElem = document.createElement('div');
+                ytElem.id = 'player-container';
+                container.insertBefore(ytElem, hlsVideo);
+            }
 
             try {
                 player = new YT.Player('player-container', {
@@ -841,16 +862,18 @@
         // 유튜브 API가 차단되었을 때 100% 화면을 띄워주는 초정밀 폴백 시스템
         function fallbackDirectIframe(videoId) {
             isPlayerReady = false;
-            const wrapper = document.getElementById('player-filter-wrapper');
-            const isMuted = (currentVolume === 0) ? 1 : 0;
-            wrapper.innerHTML = `
-                <iframe id="fallback-iframe" 
-                        src="https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&rel=0&showinfo=0&mute=${isMuted}&playsinline=1&enablejsapi=1" 
-                        frameborder="0" 
-                        allow="autoplay; encrypted-media; picture-in-picture" 
-                        allowfullscreen 
-                        style="width: 100%; height: 100%; pointer-events: none;">
-                </iframe>`;
+            let ytElem = document.getElementById('player-container');
+            if (ytElem) {
+                const isMuted = (currentVolume === 0) ? 1 : 0;
+                ytElem.innerHTML = `
+                    <iframe id="fallback-iframe" 
+                            src="https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&rel=0&showinfo=0&mute=${isMuted}&playsinline=1&enablejsapi=1" 
+                            frameborder="0" 
+                            allow="autoplay; encrypted-media; picture-in-picture" 
+                            allowfullscreen 
+                            style="width: 100%; height: 100%; pointer-events: none;">
+                    </iframe>`;
+            }
         }
 
         // 유튜브 API 스크립트 비동기 탑재
@@ -879,15 +902,34 @@
         }
 
         function onPlayerStateChange(event) {
-            // 영상 재생 완료 시 다음 채널로 자동 진행 기능
-            if (isAutoChangeOn && isTvOn && event.data === YT.PlayerState.ENDED) {
+            // 영상 재생 완료 시 다음 채널로 자동 진행 기능 (유튜브 소스 모드일 때만 동작)
+            if (isYouTubeActive && isAutoChangeOn && isTvOn && event.data === YT.PlayerState.ENDED) {
                 changeChannel();
             }
         }
 
+        // IPTV 및 MP4 재생 완료 시 다음 채널로 자동 전환 리스너 연계
+        hlsVideo.addEventListener('ended', () => {
+            if (!isYouTubeActive && isAutoChangeOn && isTvOn) {
+                changeChannel();
+            }
+        });
+
         function getInitialVideoId() {
             const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('video') || defaultChannels[0];
+            const rawUrl = urlParams.get('video') || defaultChannels[0];
+            return rawUrl;
+        }
+
+        // * IPTV 및 .m3u8 HLS 링크 형식 감지 도구
+        function isM3u8Url(url) {
+            return url.trim().toLowerCase().includes('.m3u8');
+        }
+
+        // * 직접 연결 비디오(MP4, WebM, OGG, MOV) 확장자 탐지 도구
+        function isMp4Url(url) {
+            const u = url.trim().toLowerCase();
+            return u.includes('.mp4') || u.includes('.webm') || u.includes('.ogg') || u.includes('.mov');
         }
 
         // * 초강력 유튜브 비디오 및 실시간 라이브 주소 분석기
@@ -895,25 +937,21 @@
             if (!url) return null;
             url = url.trim();
 
-            // 1. 이미 11자리 비디오 ID 자체를 직접 적은 경우 바로 리턴
             if (/^[a-zA-Z0-9_-]{11}$/.test(url)) {
                 return url;
             }
 
-            // 2. 유튜브 라이브(Live) 고유 주소 감지 패턴 (/live/ 형태 추가)
             const liveRegex = /\/live\/([a-zA-Z0-9_-]{11})/;
             const liveMatch = url.match(liveRegex);
             if (liveMatch) {
-                isCurrentLive = true; // 라이브 감지 활성화
+                isCurrentLive = true; 
                 return liveMatch[1];
             }
 
-            // 3. 유튜브 쇼츠(Shorts) 주소인 경우 처리
             const shortsRegex = /\/shorts\/([a-zA-Z0-9_-]{11})/;
             const shortsMatch = url.match(shortsRegex);
             if (shortsMatch) return shortsMatch[1];
 
-            // 4. 일반적인 유튜브, 모바일 유튜브, 임베디드, 단축 주소 처리
             const standardRegex = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
             const match = url.match(standardRegex);
             if (match) return match[1];
@@ -921,7 +959,96 @@
             return null;
         }
 
-        // * 하단 노브 설정값에 따라 실시간 화면 필터 융합
+        // * HLS (.m3u8) 실시간 미디어 스트리밍 탑재 로직
+        function loadHlsStream(m3u8Url) {
+            isYouTubeActive = false;
+            isCurrentLive = true;
+
+            // 유튜브 플레이어 정지 및 안 보이게 숨김
+            const ytElem = document.getElementById('player-container');
+            if (ytElem) ytElem.style.display = 'none';
+            if (isPlayerReady && player && typeof player.pauseVideo === 'function') {
+                try { player.pauseVideo(); } catch(e) {}
+            }
+
+            // HLS 비디오 노출 시작
+            hlsVideo.style.display = 'block';
+
+            // 이전 HLS.js 엔진 자원 수거
+            if (hlsEngine) {
+                hlsEngine.destroy();
+                hlsEngine = null;
+            }
+
+            if (Hls.isSupported()) {
+                hlsEngine = new Hls();
+                hlsEngine.loadSource(m3u8Url);
+                hlsEngine.attachMedia(hlsVideo);
+                hlsEngine.on(Hls.Events.MANIFEST_PARSED, function() {
+                    if (isTvOn) {
+                        hlsVideo.play().catch(err => {
+                            console.log("Auto-play blocked for IPTV video element", err);
+                        });
+                    }
+                });
+            } else if (hlsVideo.canPlayType('application/vnd.apple.mpegurl')) {
+                // Safari 네이티브 재생 환경 지원
+                hlsVideo.src = m3u8Url;
+                hlsVideo.addEventListener('loadedmetadata', function() {
+                    if (isTvOn) {
+                        hlsVideo.play().catch(err => {
+                            console.log("Auto-play blocked Safari HLS", err);
+                        });
+                    }
+                });
+            }
+
+            syncHlsVolume();
+            triggerOSD('LIV', true);
+        }
+
+        // * 직접 미디어 파일 (MP4, WebM 등) 스트리밍 탑재 로직
+        function loadDirectVideo(videoUrl) {
+            isYouTubeActive = false;
+            isCurrentLive = false;
+
+            // 유튜브 정지 및 은닉
+            const ytElem = document.getElementById('player-container');
+            if (ytElem) ytElem.style.display = 'none';
+            if (isPlayerReady && player && typeof player.pauseVideo === 'function') {
+                try { player.pauseVideo(); } catch(e) {}
+            }
+
+            // HLS 비디오 노출 시작
+            hlsVideo.style.display = 'block';
+
+            // 이전 HLS 엔지 가동 차단
+            if (hlsEngine) {
+                hlsEngine.destroy();
+                hlsEngine = null;
+            }
+
+            // 비디오 소스 교환 및 버퍼링 시작
+            hlsVideo.src = videoUrl;
+            hlsVideo.load();
+            if (isTvOn) {
+                hlsVideo.play().catch(err => {
+                    console.log("Auto-play blocked for direct file", err);
+                });
+            }
+
+            syncHlsVolume();
+        }
+
+        // HLS 및 MP4 미디어 음량 실시간 제어부
+        function syncHlsVolume() {
+            if (hlsVideo) {
+                hlsVideo.muted = (currentVolume === 0);
+                hlsVideo.volume = currentVolume / 100;
+            }
+        }
+
+        // * 하단 노브 설정값에 따라 실시간 화면 필터 융합 (유튜브와 IPTV/MP4 공통 물리 쉴드로 영향)
         function syncScreenFilters() {
             if (!playerFilterWrapper) return;
             
@@ -956,6 +1083,10 @@
             if (isPlayerReady && player && typeof player.pauseVideo === 'function') {
                 try { player.pauseVideo(); } catch(e) {}
             }
+            if (hlsVideo) {
+                try { hlsVideo.pause(); } catch(e) {}
+            }
+
             playerFilterWrapper.style.opacity = '0';
             powerOffLine.style.display = 'none';
             powerOffOverlay.style.display = 'flex';
@@ -977,8 +1108,15 @@
                 playerFilterWrapper.style.opacity = '1';
                 noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex]; 
                 
-                if (isPlayerReady && player && typeof player.playVideo === 'function') {
-                    try { player.playVideo(); } catch(e) {}
+                // 재생 복귀 제어
+                if (isYouTubeActive) {
+                    if (isPlayerReady && player && typeof player.playVideo === 'function') {
+                        try { player.playVideo(); } catch(e) {}
+                    }
+                } else {
+                    if (hlsVideo) {
+                        try { hlsVideo.play().catch(e => {}); } catch(e) {}
+                    }
                 }
                 
                 if(currentVolume > 0) unmuteMessage.classList.add('hidden');
@@ -1019,6 +1157,9 @@
                 }
             }
 
+            // HLS 및 MP4 음량 연계 제어
+            syncHlsVolume();
+
             const fallbackIframe = document.getElementById('fallback-iframe');
             if (fallbackIframe) {
                 const isMuted = (currentVolume === 0) ? 1 : 0;
@@ -1049,9 +1190,8 @@
             
             const nextVideoId = defaultChannels[currentChannelIndex];
             
-            // 8번 채널 음악 스트리밍 및 사전 정의된 라이브에 반응하도록 라이브 검사 세팅
-            // Lofi Girl 비디오 ID('jfKfPfyJRdk')는 기본 라이브 스트림으로 OSD에 반영
-            isCurrentLive = (nextVideoId === 'jfKfPfyJRdk');
+            // 실시간 상태 감지 플래그 선행 처리
+            isCurrentLive = (nextVideoId.includes('.m3u8'));
 
             // 만능 안전 엔진으로 채널 변경 로딩 처리 (OSD는 숫자 하나 혹은 LIV 문자 깜빡임)
             safeLoadVideo(nextVideoId, false);
@@ -1135,12 +1275,55 @@
             triggerOSD(`${Math.round(contrastValue * 100)}%`);
         });
 
-        // 만능 안전 비디오 및 라이브 스트림 불러오기 프로세스
+        // 만능 안전 비디오, IPTV M3U8 및 직접 연결 비디오(MP4 등) 통합 처리 엔진
         function safeLoadVideo(videoId, isCustom = false) {
             currentVideoId = videoId;
             shareDisplay.textContent = '';
             
-            // 라이브 방송이 확인될 경우, VCR 입력(AV) 대신 우선적으로 LIV 깜빡이 신호 출력
+            // 1. 만약 입력된 비디오 경로가 IPTV M3U8 형식인 경우 처리
+            if (isM3u8Url(videoId)) {
+                isYouTubeActive = false;
+                isCurrentLive = true;
+                if (isCustom) {
+                    triggerOSD('AV');
+                } else {
+                    triggerOSD(`${currentChannelIndex + 1}`);
+                }
+                loadHlsStream(videoId);
+                return;
+            }
+
+            // 2. 만약 입력된 비디오 경로가 직접 MP4/WebM 형식인 경우 처리
+            if (isMp4Url(videoId)) {
+                isYouTubeActive = false;
+                isCurrentLive = false;
+                if (isCustom) {
+                    triggerOSD('AV');
+                } else {
+                    triggerOSD(`${currentChannelIndex + 1}`);
+                }
+                loadDirectVideo(videoId);
+                return;
+            }
+
+            // 3. 유튜브 형식 소스 처리
+            isYouTubeActive = true;
+
+            // HLS 비디오 숨김 처리 및 네이티브 플레이어 정리
+            if (hlsVideo) {
+                hlsVideo.pause();
+                hlsVideo.src = "";
+                hlsVideo.style.display = 'none';
+            }
+            if (hlsEngine) {
+                hlsEngine.destroy();
+                hlsEngine = null;
+            }
+
+            // 유튜브 스크린 노출 시작
+            const ytElem = document.getElementById('player-container');
+            if (ytElem) ytElem.style.display = 'block';
+
             if (isCurrentLive) {
                 triggerOSD('LIV', true);
             } else if (isCustom) {
@@ -1149,7 +1332,6 @@
                 triggerOSD(`${currentChannelIndex + 1}`);
             }
 
-            // API가 완전히 정상 작동할 때
             if (isPlayerReady && player && typeof player.loadVideoById === 'function') {
                 try {
                     player.loadVideoById({
@@ -1176,31 +1358,36 @@
             autoChangeToggle.textContent = `자동 채널 변경: ${isAutoChangeOn ? '켜짐' : '꺼짐'}`;
         });
 
-        // 영상 불러오기 버튼 클릭 핸들러 (유튜브 라이브 자동 감지 탑재 완료)
+        // 영상 불러오기 버튼 클릭 핸들러 (유튜브 라이브, IPTV, MP4 일괄 감지 및 자동 분기 기동)
         loadBtn.addEventListener('click', () => {
             if (!isTvOn) return;
-            const url = linkInput.value;
-            // 불러올 비디오 분석 전 라이브 감지 플래그 초기화
+            const url = linkInput.value.trim();
+            if (!url) return;
+
             isCurrentLive = false;
-            
-            const videoId = extractVideoId(url);
-            if (videoId) {
-                // 주소창 분석 과정에서 /live/ 키워드를 발견하지 못했더라도 라이브 형태의 링크인 경우 OSD 연출을 보강하기 위해 감지 조건 설계
-                if (url.includes('/live') || url.includes('live')) {
-                    isCurrentLive = true;
-                }
-                safeLoadVideo(videoId, true); 
+
+            if (isM3u8Url(url) || isMp4Url(url)) {
+                safeLoadVideo(url, true);
                 linkInput.value = '';
             } else {
-                shareDisplay.textContent = '유효하지 않은 유튜브 링크입니다. (ID 11자리를 직접 적으셔도 됩니다)';
-                triggerOSD('ERR');
+                const videoId = extractVideoId(url);
+                if (videoId) {
+                    if (url.includes('/live') || url.includes('live')) {
+                        isCurrentLive = true;
+                    }
+                    safeLoadVideo(videoId, true); 
+                    linkInput.value = '';
+                } else {
+                    shareDisplay.textContent = '유효하지 않은 링크 포맷입니다. (유튜브, IPTV, 혹은 MP4 동영상 주소를 입력하세요)';
+                    triggerOSD('ERR');
+                }
             }
         });
 
         createLinkBtn.addEventListener('click', () => {
             if (!isTvOn) return;
             const baseUrl = window.location.origin + window.location.pathname;
-            const shareableLink = `${baseUrl}?video=${currentVideoId}`;
+            const shareableLink = `${baseUrl}?video=${encodeURIComponent(currentVideoId)}`;
             shareDisplay.textContent = `공유 링크: ${shareableLink}`;
         });
     </script>
