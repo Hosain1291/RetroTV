@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>My Old TV - Mona Seamless Volume Edition</title>
+    <title>My Old TV - Mona Wikipedia Static Edition</title>
     <style>
         /* Mona12 도트 픽셀 폰트 로드 */
         @import url('https://cdn.jsdelivr.net/gh/MonadABXY/mona-font/web/mona.css');
@@ -157,28 +157,33 @@
             letter-spacing: 1px;
         }
         
-        /* * 브라운관 미세 주사선 및 노이즈 효과 */
+        /* * 위키미디어 공용의 검증된 백색소음 GIF 노이즈 레이어 (절대 끊기거나 누락되지 않는 강력한 가드가 적용됨) */
         .noise {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             z-index: 2;
             pointer-events: none;
-            background: url('https://i.pinimg.com/originals/62/9c/cd/629ccd010ebe5be08a7bde5da6f7332c.gif') center/cover;
-            opacity: 0.12;
-            transition: opacity 0.3s;
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/0/02/Television_static.gif');
+            background-position: center;
+            background-size: cover;
+            opacity: 0.12; /* 기본 불투명도 */
+            mix-blend-mode: screen; /* 영상과 아날로그 백색소음 결합 */
+            transition: opacity 0.2s ease-out;
         }
         
-        /* 채널 전환 시 지직거리는 효과 */
+        /* 채널 전환 시 연출되는 지직거리는 효과 */
         .channel-change-effect {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: url('https://i.pinimg.com/originals/62/9c/cd/629ccd010ebe5be08a7bde5da6f7332c.gif') center/cover;
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/0/02/Television_static.gif');
+            background-position: center;
+            background-size: cover;
             z-index: 10;
             display: none;
             opacity: 0.85;
         }
 
-        /* * 유튜브 플레이어 필터 랩퍼 (필터 유실 및 갱신 안정화 버퍼) */
+        /* * 유튜브 플레이어 필터 랩퍼 */
         #player-filter-wrapper {
             position: absolute;
             top: 0; left: 0;
@@ -192,7 +197,7 @@
         #player-container {
             width: 100%;
             height: 100%;
-            pointer-events: none; /* 사용자 직접 제어 차단하여 TV 컨트롤 인터랙션 유지 */
+            pointer-events: none; /* 사용자 직접 프레임 터치 방지 */
         }
 
         /* TV 화면 꺼짐 및 가로선 연출 오버레이 */
@@ -288,7 +293,7 @@
             transform: translateX(-50%);
             width: 3px;
             height: 7px;
-            background-color: #ffcc00; /* 미세 볼륨 노브 스타일의 눈금 선 */
+            background-color: #ffcc00; /* 눈금 선 */
             border-radius: 1px;
         }
         .shelf-knob.grayscale-knob::after { background-color: #ffffff; }
@@ -571,10 +576,10 @@
                             <div id="power-off-line"></div>
                         </div>
                         <div class="channel-change-effect"></div>
-                        <div class="noise"></div>
+                        <!-- 위키백과 공식 고화질 텔레비전 백색소음 GIF 노이즈 래퍼 -->
+                        <div class="noise" id="noise-overlay"></div>
                         <!-- 필터 가드 랩퍼 -->
                         <div id="player-filter-wrapper">
-                            <!-- 유튜브 API가 직접 Iframe으로 제어권을 치환하게 함 -->
                             <div id="player-container"></div>
                         </div>
                     </div>
@@ -688,7 +693,7 @@
         
         const osd = document.getElementById('osd');
         const autoChangeToggle = document.getElementById('auto-change-toggle');
-        const noiseOverlay = document.querySelector('.noise');
+        const noiseOverlay = document.getElementById('noise-overlay');
         const channelEffect = document.querySelector('.channel-change-effect');
         const powerOffOverlay = document.getElementById('power-off-overlay');
         const powerOffLine = document.getElementById('power-off-line');
@@ -712,24 +717,26 @@
             'cKJeXF4te7U'  // 채널 8
         ];
         
+        // STATIC 노브 클릭 시 조절될 GIF 노이즈 레벨 단계 설정 (투명도)
         const noiseLevels = [0, 0.12, 0.25, 0.45];
         const presetNames = ['B&W', 'COLOR', 'SEPIA'];
         let currentPresetIndex = 0; // 시작 프리셋: 흑백
 
-        // * 하단 가변 저항 수치 세팅
+        // * 하단 가변 저항 수치 세팅 (접속 시 옛날 흑백 브라운관 감성으로 구동하기 위해 grayscale 1.0로 시작)
         let colorValue = 1.0;     
         let grayscaleValue = 1.0; 
         let contrastValue = 1.0;  
 
         // * 아날로그 볼륨 세팅 (모바일 브라우저 자동 재생 정책에 맞춰 0% 무음 상태로 구동)
         let currentVolume = 0; 
+        let currentNoiseIndex = 1; // 기본 노이즈 활성화 상태
 
         let chRotation = 0;
         let currentChannelIndex = 0;
         let currentVideoId = '';
         let isTvOn = true; 
         let isAutoChangeOn = true;
-        let player; // 유튜브 플레이어 API 레퍼런스
+        let player; 
 
         /* * 녹색 OSD 디스플레이 알림 기능 */
         let osdTimeout;
@@ -808,12 +815,14 @@
             event.target.playVideo(); // 접속하자마자 즉시 구동!
             
             powerBtn.classList.add('on');
-            noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
             
             // 미세 튜닝 노브들의 회전 상태 동기화
             updateKnobVisuals();
             syncScreenFilters();
             handleResize();
+            
+            // 이미지 노이즈 레벨 초기화 적용
+            noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
         }
 
         function onPlayerStateChange(event) {
@@ -870,6 +879,7 @@
             playerFilterWrapper.style.opacity = '0';
             powerOffLine.style.display = 'none';
             powerOffOverlay.style.display = 'flex';
+            noiseOverlay.style.opacity = '0'; // 노이즈 완벽 은닉
             
             powerBtn.classList.remove('on');
             unmuteMessage.classList.add('hidden');
@@ -885,6 +895,7 @@
             setTimeout(() => {
                 powerOffOverlay.style.display = 'none';
                 playerFilterWrapper.style.opacity = '1';
+                noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex]; // 노이즈 재기동
                 
                 if (player && typeof player.playVideo === 'function') {
                     player.playVideo();
@@ -905,7 +916,6 @@
         });
 
         // * 하단 VOLUME 10% 단위 정밀 조절 전용 다이얼 조작
-        // * iframe 새로고침 없이 player API를 통해 완벽하게 음소거 및 레벨 통제하여 채널 정지나 리셋 방지!
         volumeAdjustKnob.addEventListener('click', () => {
             if (!isTvOn || !player || typeof player.setVolume !== 'function') return;
             playKnobSound();
@@ -946,7 +956,7 @@
             currentVideoId = nextVideoId;
             triggerOSD(`CH: ${currentChannelIndex + 1}`);
             
-            // 기존 채널 상태와 상관없이 현재 미세 볼륨 세팅을 유지하며 영상 채널만 즉시 변경!
+            // 볼륨을 유지한 채 다음 비디오로 부드러운 Seamless 전환
             player.loadVideoById({
                 videoId: nextVideoId,
                 startSeconds: 0
@@ -957,13 +967,13 @@
             }, 500);
         }
 
-        // STATIC 노이즈 다이얼 조작
+        // STATIC 노이즈 다이얼 조작 (위키미디어의 Television_static.gif 의 실시간 투명도 세밀 조절)
         noiseKnob.addEventListener('click', () => {
             if (!isTvOn) return;
             playKnobSound();
             currentNoiseIndex = (currentNoiseIndex + 1) % noiseLevels.length;
-            noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
             
+            noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
             noiseKnob.style.setProperty('--rotation', `${currentNoiseIndex * 60}deg`);
             triggerOSD(`STATIC: ${Math.round(noiseLevels[currentNoiseIndex] * 100)}%`);
         });
