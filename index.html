@@ -116,10 +116,10 @@
             box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.9);
         }
 
-        /* * 실제 CRT 스크린 하우징 */
+        /* * 실제 CRT 스크린 하우징 (500x375 규격 = 완벽한 아날로그 4:3 비율) */
         .screen {
             width: 500px;
-            height: 375px; /* 4:3 비율의 CRT 화면 표준 */
+            height: 375px; 
             background-color: #030303;
             border-radius: 35px; /* 둥근 곡률의 브라운관 */
             position: relative;
@@ -213,12 +213,13 @@
             pointer-events: none; /* 사용자 직접 프레임 터치 방지 */
         }
 
-        /* IPTV(.m3u8) 및 MP4 재생용 HTML5 비디오 엘리먼트 (자동재생, 음소거, 인라인 재생 기본 셋업) */
+        /* IPTV(.m3u8) 및 MP4, WebM, Ogg, Mov 재생용 HTML5 비디오 엘리먼트 */
+        /* object-fit: fill을 장착하여 4:3 브라운관 비율에 정확히 맞춰 꽉 늘리도록 조율 */
         #hls-video {
             display: none;
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: fill; /* 4:3 비율의 스크린 박스 전면에 왜곡 스트레치 병합 */
             background: #000;
             pointer-events: none;
         }
