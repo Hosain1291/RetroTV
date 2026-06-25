@@ -815,7 +815,8 @@
                             <span class="control-label">POWER</span>
                         </div>
                         <div style="text-align: center;">
-                            <div class="sub-knob" id="noise-knob" style="--rotation: 60deg;"></div>
+                            <!-- 정교하게 튜닝된 10% 단위 STATIC 노브 회전각 (-107deg = 10%) -->
+                            <div class="sub-knob" id="noise-knob" style="--rotation: -107deg;"></div>
                             <span class="control-label">STATIC</span>
                         </div>
                         <div style="text-align: center;">
@@ -1000,8 +1001,8 @@
         // 셋톱박스 채널 편성표를 보관하는 핵심 데이터 스토어 (깊은 복사로 초기 로드)
         let activePlaylist = JSON.parse(JSON.stringify(defaultChannels));
         
-        // STATIC 노브 클릭 시 조절될 GIF 노이즈 레벨 단계 설정 (최대 60%까지 부드럽게 증가)
-        const noiseLevels = [0, 0.20, 0.40, 0.60];
+        // STATIC 노브 클릭 시 조절될 GIF 노이즈 레벨 단계 설정 (10% 단위로 최대 70%까지 8단계 정밀 순환)
+        const noiseLevels = [0, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70];
         const presetNames = ['B&W', 'COLOR', 'SEPIA'];
         let currentPresetIndex = 0; // 시작 프리셋: 흑백
 
@@ -1012,7 +1013,7 @@
 
         // * 아날로그 볼륨 세팅 (모바일 브라우저 자동 재생 정책에 맞춰 0% 무음 상태로 구동)
         let currentVolume = 0; 
-        let currentNoiseIndex = 1; // 기본 노이즈 활성화 상태 (20%)
+        let currentNoiseIndex = 1; // 기본 노이즈 활성화 상태 (10%)
 
         let chRotation = 0;
         let currentChannelIndex = 0;
@@ -1027,6 +1028,71 @@
         // 미디어 소스 모드 감지 플래그 (True: YouTube, False: HTML5 HLS/Direct Player)
         let isYouTubeActive = true;
         let hlsEngine = null;
+
+        // 🔊 아날로그 오디오 백색 소음(White Noise) 파동 발생기 노드 정의
+        let noiseSource = null;
+        let noiseGainNode = null;
+
+        // 실시간 백색 소음 재생 루프 기동 엔진
+        function startWhiteNoise() {
+            if (!audioCtx) return;
+            
+            // 브라우저 AudioContext 정지 자동 해제 제어
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            
+            stopWhiteNoise(); // 중복 노드 정리
+
+            const bufferSize = audioCtx.sampleRate * 2; // 2초 분량의 루프 노이즈 버퍼 생성
+            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            
+            // 난수(Math.random)를 이용해 순수 화이트 노이즈 사운드 실시간 합성
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+
+            noiseSource = audioCtx.createBufferSource();
+            noiseSource.buffer = noiseBuffer;
+            noiseSource.loop = true;
+
+            noiseGainNode = audioCtx.createGain();
+            updateNoiseVolume(); // 볼륨 및 STATIC 연동 보정
+
+            noiseSource.connect(noiseGainNode);
+            noiseGainNode.connect(audioCtx.destination);
+            noiseSource.start();
+        }
+
+        // 백색 소음 정지 소거 장치
+        function stopWhiteNoise() {
+            if (noiseSource) {
+                try { noiseSource.stop(); } catch(e) {}
+                noiseSource.disconnect();
+                noiseSource = null;
+            }
+            if (noiseGainNode) {
+                noiseGainNode.disconnect();
+                noiseGainNode = null;
+            }
+        }
+
+        // 마스터 볼륨 및 STATIC 다이얼 수치에 따른 실시간 노이즈 사운드 가변 계산부
+        function updateNoiseVolume() {
+            if (!noiseGainNode) return;
+            if (!isTvOn) {
+                noiseGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                return;
+            }
+            
+            const staticFactor = noiseLevels[currentNoiseIndex]; // 0.0 ~ 0.70 가변
+            const volumeFactor = currentVolume / 100; // 0.0 ~ 1.0 볼륨
+
+            // 귀가 먹먹해지지 않도록 아날로그 감성 데시벨 스케일 상향 조율 (최대 이득 계수 0.12)
+            const targetGain = staticFactor * volumeFactor * 0.12;
+            noiseGainNode.gain.setValueAtTime(targetGain, audioCtx.currentTime);
+        }
 
         /* * 녹색 OSD 디스플레이 알림 기능 (다중 데이터 출력 및 이름 가독성 강화) */
         let osdTimeout;
@@ -1081,6 +1147,10 @@
                 audioCtx.resume();
             }
             if (isTvOn) {
+                // 노이즈 오디오 복원 가동
+                if (!noiseSource) {
+                    startWhiteNoise();
+                }
                 if (isYouTubeActive) {
                     if (isPlayerReady && player && typeof player.playVideo === 'function') {
                         player.playVideo();
@@ -1192,6 +1262,9 @@
             
             // 이미지 노이즈 레벨 초기화 적용
             noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
+            
+            // 아날로그 백색 소음 합성 즉시 구동
+            startWhiteNoise();
         }
 
         function onPlayerStateChange(event) {
@@ -1381,6 +1454,10 @@
 
             const volumeDegree = (currentVolume / 100) * 300 - 150;
             volumeAdjustKnob.style.setProperty('--rotation', `${volumeDegree}deg`);
+
+            // 10% ~ 70% 사이의 8단계 각도 조율 (-150deg ~ 150deg 아날로그 궤적 완벽 맵핑)
+            const noiseDegree = (currentNoiseIndex * 300 / (noiseLevels.length - 1)) - 150;
+            noiseKnob.style.setProperty('--rotation', `${noiseDegree}deg`);
         }
 
         // TV 전원 끄기
@@ -1391,6 +1468,9 @@
             if (hlsVideo) {
                 try { hlsVideo.pause(); } catch(e) {}
             }
+
+            // 노이즈 오디오 완전 차단
+            stopWhiteNoise();
 
             playerFilterWrapper.style.opacity = '0';
             powerOffLine.style.display = 'none';
@@ -1413,6 +1493,9 @@
                 playerFilterWrapper.style.opacity = '1';
                 noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex]; 
                 
+                // 백색 소음 합성 가동
+                startWhiteNoise();
+
                 // 재생 복귀 제어
                 if (isYouTubeActive) {
                     if (isPlayerReady && player && typeof player.playVideo === 'function') {
@@ -1465,6 +1548,9 @@
             // HLS 및 MP4 음량 연계 제어
             syncHlsVolume();
 
+            // 백색 소음 가변 음량 동시 적용
+            updateNoiseVolume();
+
             const fallbackIframe = document.getElementById('fallback-iframe');
             if (fallbackIframe) {
                 const isMuted = (currentVolume === 0) ? 1 : 0;
@@ -1514,15 +1600,26 @@
             }, 500);
         }
 
-        // STATIC 노이즈 다이얼 조작
+        // STATIC 노이즈 다이얼 조작 (0% ~ 10% 단위로 70%까지 순환, 오디오 음량 스케일링 완벽 병합)
         noiseKnob.addEventListener('click', () => {
             if (!isTvOn) return;
             playKnobSound();
             currentNoiseIndex = (currentNoiseIndex + 1) % noiseLevels.length;
             
+            const staticPercent = Math.round(noiseLevels[currentNoiseIndex] * 100);
             noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
-            noiseKnob.style.setProperty('--rotation', `${currentNoiseIndex * 60}deg`);
-            triggerOSD(`${Math.round(noiseLevels[currentNoiseIndex] * 100)}%`);
+            
+            // 셋톱박스 계수 OSD 표출
+            triggerOSD(`ST ${staticPercent}%`);
+            
+            // 백색 소음 합성 오디오 노드 기동 및 음량 갱신
+            if (!noiseSource) {
+                startWhiteNoise();
+            } else {
+                updateNoiseVolume();
+            }
+
+            updateKnobVisuals();
         });
 
         // 우측 PRESET 다이얼 조작 시 하단 가변저항 연계 갱신
