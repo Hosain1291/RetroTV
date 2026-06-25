@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>My Old TV - Vintage Numeric OSD Edition</title>
+    <title>My Old TV - Vintage Live Stream Edition</title>
     <style>
         /* Mona12 도트 픽셀 폰트 로드 */
         @import url('https://cdn.jsdelivr.net/gh/MonadABXY/mona-font/web/mona.css');
@@ -156,6 +156,17 @@
             transition: opacity 0.15s ease-in-out;
             pointer-events: none;
             letter-spacing: 2px;
+        }
+
+        /* 라이브 스트리밍일 때 깜빡거리는 레트로 데코레이션 */
+        @keyframes blink-live {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .osd-live-blink {
+            animation: blink-live 1s infinite;
+            color: #ff3b30 !important;
+            text-shadow: 0 0 10px rgba(255, 59, 48, 1), 0 0 3px rgba(255, 59, 48, 0.6) !important;
         }
         
         /* * 위키미디어 공용의 검증된 백색소음 GIF 노이즈 레이어 */
@@ -570,7 +581,7 @@
                 <!-- 좌측 메인 브라운관 영역 -->
                 <div class="left-bezel">
                     <div class="screen">
-                        <!-- 복고풍 녹색 Phosphor OSD 지시창 (아날로그 TV 채널 숫자 구현) -->
+                        <!-- 복고풍 녹색 Phosphor OSD 지시창 (아날로그 TV 채널 숫자 및 LIVE 상태 자동 출력) -->
                         <div id="osd" class="osd-text">1</div>
                         <div id="unmute-message">VOLUME 다이얼(아래쪽 큰 노브)을 클릭해 볼륨을 올려주세요</div>
                         <div id="power-off-overlay">
@@ -647,7 +658,7 @@
 
     <!-- 하단 영상 로드 및 유틸 박스 -->
     <div class="custom-controls">
-        <input type="text" id="youtube-link-input" placeholder="유튜브 링크 또는 비디오 ID를 붙여넣으세요">
+        <input type="text" id="youtube-link-input" placeholder="유튜브 링크, 라이브 링크, 혹은 비디오 ID를 입력하세요">
         <div class="button-group">
             <button id="load-video-btn">영상 불러오기</button>
             <button id="create-share-link-btn">공유 링크 만들기</button>
@@ -706,16 +717,17 @@
 
         const playerFilterWrapper = document.getElementById('player-filter-wrapper');
 
-        // 기본 제공 8개 채널 비디오 목록 (채널 1과 채널 4의 동영상이 새로운 ID로 완벽 교체되었습니다)
+        // 기본 제공 8개 채널 비디오 목록
+        // 채널 1, 채널 4 지정 영상 완벽 세팅 및 채널 8에 24시간 실시간 음악 라이브 고정 배치!
         const defaultChannels = [
-            'aEecppc9c10', // 채널 1
+            'aEecppc9c10', // 채널 1 (지정 완료)
             '8zbpITJKUZg', // 채널 2
             '8oXaCFzm9oc', // 채널 3
-            'm_5J0cVHLik', // 채널 4
+            'm_5J0cVHLik', // 채널 4 (지정 완료)
             'S87sCX5Jjo0', // 채널 5
             '5vjD0d8D9Ec', // 채널 6
             'n0Z4KuYy2ro', // 채널 7
-            'cKJeXF4te7U'  // 채널 8
+            'jfKfPfyJRdk'  // 채널 8 (테스트용 Lofi Girl 24시간 실시간 LIVE 스트리밍!)
         ];
         
         // STATIC 노브 클릭 시 조절될 GIF 노이즈 레벨 단계 설정 (최대 60%까지 부드럽게 증가)
@@ -740,15 +752,23 @@
         let player = null; 
         let isPlayerReady = false; 
 
+        // 입력한 비디오가 Live 스트리밍 상태인지 감지하는 전역 플래그
+        let isCurrentLive = false;
+
         /* * 녹색 OSD 디스플레이 알림 기능 */
         let osdTimeout;
-        function triggerOSD(text) {
-            osd.textContent = text;
+        function triggerOSD(text, forceLive = false) {
+            // 라이브 방송이 감지된 상태이거나 강제 라이브 연출 시 OSD에 깜빡이는 LIVE 태그 부여
+            if (isCurrentLive || forceLive) {
+                osd.innerHTML = `<span class="osd-live-blink">LIV</span>`;
+            } else {
+                osd.textContent = text;
+            }
             osd.style.opacity = '1';
             clearTimeout(osdTimeout);
             osdTimeout = setTimeout(() => {
                 osd.style.opacity = '0';
-            }, 1500);
+            }, 1800);
         }
 
         /* * 모바일 크기에 맞춰 정밀하게 TV 크기를 조율하는 미적 비례 축소 제어 장치 */
@@ -870,19 +890,30 @@
             return urlParams.get('video') || defaultChannels[0];
         }
 
-        // * 초강력 유튜브 비디오 ID 분석기 (Shorts, Mobile, Raw ID 전부 파싱 완료)
+        // * 초강력 유튜브 비디오 및 실시간 라이브 주소 분석기
         function extractVideoId(url) {
             if (!url) return null;
             url = url.trim();
 
+            // 1. 이미 11자리 비디오 ID 자체를 직접 적은 경우 바로 리턴
             if (/^[a-zA-Z0-9_-]{11}$/.test(url)) {
                 return url;
             }
 
+            // 2. 유튜브 라이브(Live) 고유 주소 감지 패턴 (/live/ 형태 추가)
+            const liveRegex = /\/live\/([a-zA-Z0-9_-]{11})/;
+            const liveMatch = url.match(liveRegex);
+            if (liveMatch) {
+                isCurrentLive = true; // 라이브 감지 활성화
+                return liveMatch[1];
+            }
+
+            // 3. 유튜브 쇼츠(Shorts) 주소인 경우 처리
             const shortsRegex = /\/shorts\/([a-zA-Z0-9_-]{11})/;
             const shortsMatch = url.match(shortsRegex);
             if (shortsMatch) return shortsMatch[1];
 
+            // 4. 일반적인 유튜브, 모바일 유튜브, 임베디드, 단축 주소 처리
             const standardRegex = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
             const match = url.match(standardRegex);
             if (match) return match[1];
@@ -1018,7 +1049,11 @@
             
             const nextVideoId = defaultChannels[currentChannelIndex];
             
-            // 만능 안전 엔진으로 채널 변경 로딩 처리 (OSD는 숫자 하나만 깜빡임)
+            // 8번 채널 음악 스트리밍 및 사전 정의된 라이브에 반응하도록 라이브 검사 세팅
+            // Lofi Girl 비디오 ID('jfKfPfyJRdk')는 기본 라이브 스트림으로 OSD에 반영
+            isCurrentLive = (nextVideoId === 'jfKfPfyJRdk');
+
+            // 만능 안전 엔진으로 채널 변경 로딩 처리 (OSD는 숫자 하나 혹은 LIV 문자 깜빡임)
             safeLoadVideo(nextVideoId, false);
             
             setTimeout(() => {
@@ -1100,14 +1135,15 @@
             triggerOSD(`${Math.round(contrastValue * 100)}%`);
         });
 
-        // 만능 안전 비디오 불러오기 프로세스
+        // 만능 안전 비디오 및 라이브 스트림 불러오기 프로세스
         function safeLoadVideo(videoId, isCustom = false) {
             currentVideoId = videoId;
             shareDisplay.textContent = '';
             
-            // 실제 아날로그 TV 고증: 채널 변경 시 오직 채널 번호(숫자)만 OSD에 표시
-            // 커스텀 유튜브 비디오를 불러올 시에는 VCR 연결을 뜻하는 'AV' 문자를 깜빡임
-            if (isCustom) {
+            // 라이브 방송이 확인될 경우, VCR 입력(AV) 대신 우선적으로 LIV 깜빡이 신호 출력
+            if (isCurrentLive) {
+                triggerOSD('LIV', true);
+            } else if (isCustom) {
                 triggerOSD('AV');
             } else {
                 triggerOSD(`${currentChannelIndex + 1}`);
@@ -1140,13 +1176,20 @@
             autoChangeToggle.textContent = `자동 채널 변경: ${isAutoChangeOn ? '켜짐' : '꺼짐'}`;
         });
 
-        // 영상 불러오기 버튼 클릭 핸들러 (만능 분석 & 안전 치환 탑재 완료)
+        // 영상 불러오기 버튼 클릭 핸들러 (유튜브 라이브 자동 감지 탑재 완료)
         loadBtn.addEventListener('click', () => {
             if (!isTvOn) return;
             const url = linkInput.value;
+            // 불러올 비디오 분석 전 라이브 감지 플래그 초기화
+            isCurrentLive = false;
+            
             const videoId = extractVideoId(url);
             if (videoId) {
-                safeLoadVideo(videoId, true); // 커스텀 로딩은 외부 비디오(VCR/AV)를 뜻하도록 세팅
+                // 주소창 분석 과정에서 /live/ 키워드를 발견하지 못했더라도 라이브 형태의 링크인 경우 OSD 연출을 보강하기 위해 감지 조건 설계
+                if (url.includes('/live') || url.includes('live')) {
+                    isCurrentLive = true;
+                }
+                safeLoadVideo(videoId, true); 
                 linkInput.value = '';
             } else {
                 shareDisplay.textContent = '유효하지 않은 유튜브 링크입니다. (ID 11자리를 직접 적으셔도 됩니다)';
