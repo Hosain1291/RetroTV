@@ -167,7 +167,7 @@
             background-image: url('https://upload.wikimedia.org/wikipedia/commons/0/02/Television_static.gif');
             background-position: center;
             background-size: cover;
-            opacity: 0.12; /* 기본 불투명도 */
+            opacity: 0.20; /* 기본 불투명도 */
             mix-blend-mode: screen; /* 영상과 아날로그 백색소음 결합 */
             transition: opacity 0.2s ease-out;
         }
@@ -706,20 +706,20 @@
 
         const playerFilterWrapper = document.getElementById('player-filter-wrapper');
 
-        // 기본 제공 8개 채널 비디오 목록
+        // 기본 제공 8개 채널 비디오 목록 (채널 1과 채널 4의 동영상이 새로운 ID로 완벽 교체되었습니다)
         const defaultChannels = [
-            '26S5jhVKK_I', // 채널 1
+            'aEecppc9c10', // 채널 1
             '8zbpITJKUZg', // 채널 2
             '8oXaCFzm9oc', // 채널 3
-            'WY54ZUDNBUM', // 채널 4
+            'm_5J0cVHLik', // 채널 4
             'S87sCX5Jjo0', // 채널 5
             '5vjD0d8D9Ec', // 채널 6
             'n0Z4KuYy2ro', // 채널 7
             'cKJeXF4te7U'  // 채널 8
         ];
         
-        // STATIC 노브 클릭 시 조절될 GIF 노이즈 레벨 단계 설정 (투명도)
-        const noiseLevels = [0, 0.12, 0.25, 0.45];
+        // STATIC 노브 클릭 시 조절될 GIF 노이즈 레벨 단계 설정 (최대 60%까지 부드럽게 증가)
+        const noiseLevels = [0, 0.20, 0.40, 0.60];
         const presetNames = ['B&W', 'COLOR', 'SEPIA'];
         let currentPresetIndex = 0; // 시작 프리셋: 흑백
 
@@ -730,7 +730,7 @@
 
         // * 아날로그 볼륨 세팅 (모바일 브라우저 자동 재생 정책에 맞춰 0% 무음 상태로 구동)
         let currentVolume = 0; 
-        let currentNoiseIndex = 1; // 기본 노이즈 활성화 상태
+        let currentNoiseIndex = 1; // 기본 노이즈 활성화 상태 (20%)
 
         let chRotation = 0;
         let currentChannelIndex = 0;
@@ -890,40 +890,6 @@
             return null;
         }
 
-        // 만능 안전 비디오 불러오기 프로세스
-        function safeLoadVideo(videoId, isCustom = false) {
-            currentVideoId = videoId;
-            shareDisplay.textContent = '';
-            
-            // 실제 아날로그 TV 고증: 채널 변경 시 오직 채널 번호(숫자)만 OSD에 표시
-            // 커스텀 유튜브 비디오를 불러올 시에는 VCR 연결을 뜻하는 'AV' 문자를 깜빡임
-            if (isCustom) {
-                triggerOSD('AV');
-            } else {
-                triggerOSD(`${currentChannelIndex + 1}`);
-            }
-
-            // API가 완전히 정상 작동할 때
-            if (isPlayerReady && player && typeof player.loadVideoById === 'function') {
-                try {
-                    player.loadVideoById({
-                        videoId: videoId,
-                        startSeconds: 0
-                    });
-                    if (currentVolume === 0) {
-                        player.mute();
-                    } else {
-                        player.unMute();
-                        player.setVolume(currentVolume);
-                    }
-                } catch (e) {
-                    fallbackDirectIframe(videoId);
-                }
-            } else {
-                fallbackDirectIframe(videoId);
-            }
-        }
-
         // * 하단 노브 설정값에 따라 실시간 화면 필터 융합
         function syncScreenFilters() {
             if (!playerFilterWrapper) return;
@@ -1060,7 +1026,7 @@
             }, 500);
         }
 
-        // STATIC 노이즈 다이얼 조작 (위키미디어의 Television_static.gif 의 실시간 투명도 세밀 조절)
+        // STATIC 노이즈 다이얼 조작 (위키미디어의 Television_static.gif 의 실시간 투명도 세밀 조절 - 60%까지 부드러운 순환 적용)
         noiseKnob.addEventListener('click', () => {
             if (!isTvOn) return;
             playKnobSound();
@@ -1133,6 +1099,40 @@
             syncScreenFilters();
             triggerOSD(`${Math.round(contrastValue * 100)}%`);
         });
+
+        // 만능 안전 비디오 불러오기 프로세스
+        function safeLoadVideo(videoId, isCustom = false) {
+            currentVideoId = videoId;
+            shareDisplay.textContent = '';
+            
+            // 실제 아날로그 TV 고증: 채널 변경 시 오직 채널 번호(숫자)만 OSD에 표시
+            // 커스텀 유튜브 비디오를 불러올 시에는 VCR 연결을 뜻하는 'AV' 문자를 깜빡임
+            if (isCustom) {
+                triggerOSD('AV');
+            } else {
+                triggerOSD(`${currentChannelIndex + 1}`);
+            }
+
+            // API가 완전히 정상 작동할 때
+            if (isPlayerReady && player && typeof player.loadVideoById === 'function') {
+                try {
+                    player.loadVideoById({
+                        videoId: videoId,
+                        startSeconds: 0
+                    });
+                    if (currentVolume === 0) {
+                        player.mute();
+                    } else {
+                        player.unMute();
+                        player.setVolume(currentVolume);
+                    }
+                } catch (e) {
+                    fallbackDirectIframe(videoId);
+                }
+            } else {
+                fallbackDirectIframe(videoId);
+            }
+        }
 
         // 유틸리티 설정
         autoChangeToggle.addEventListener('click', () => {
