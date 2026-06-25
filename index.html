@@ -872,10 +872,10 @@
             <!-- 1. 일괄 가져오기 (M3U 텍스트 또는 링크 목록) -->
             <div class="deck-column">
                 <h4 class="column-sub-title">
-                    <span>M3U IPTV 본문 / 줄바꿈 링크 일괄 입력</span>
+                    <span>M3U IPTV 본문 / 링크 주소 일괄 입력</span>
                     <span style="color:#7c1212;">★ BULK PARSER</span>
                 </h4>
-                <textarea id="bulk-import-textarea" class="deck-textarea" placeholder="#EXTM3U&#10;#EXTINF:-1, 내 사랑 IPTV 실시간&#10;http://example.com/stream.m3u8&#10;&#10;또는 일반 유튜브, MP4 주소를 줄바꿈(엔터)으로 여러 개 붙여넣으세요."></textarea>
+                <textarea id="bulk-import-textarea" class="deck-textarea" placeholder="#EXTM3U&#10;#EXTINF:-1, 내 사랑 IPTV 실시간&#10;http://example.com/stream.m3u8&#10;&#10;또는 여기에 원격 M3U 파일 주소(http://...)를 적고 가져오기를 누르셔도 다운로드됩니다."></textarea>
                 <button id="deck-import-btn" class="deck-btn">📥 일괄 파싱 및 목록 가져오기</button>
             </div>
 
@@ -1222,7 +1222,7 @@
         // * 직접 연결 비디오(MP4, WebM, OGG, MOV) 확장자 탐지 도구
         function isMp4Url(url) {
             const u = url.trim().toLowerCase();
-            return u.includes('.mp4') || u.includes('.webm') || u.includes('.ogg') || u.includes('.mov');
+            return u.includes('.mp4') || u.includes('.webm') || u.includes('.ogg') || u.includes('.mov') || u.includes('.avi') || u.includes('.mkv');
         }
 
         // * 유튜브 플레이리스트 감지 기능
@@ -1701,13 +1701,84 @@
             autoChangeToggle.textContent = `자동 채널 변경: ${isAutoChangeOn ? '켜짐' : '꺼짐'}`;
         });
 
-        // 상단 인풋 영상 불러오기 버튼 클릭 핸들러
-        loadBtn.addEventListener('click', () => {
+        // 2중 프록시를 적용한 원격 M3U/M3U8 미디어 정보 다운로더 엔진
+        async function fetchRemoteM3u(url) {
+            // 1단계: 서버에서 CORS 헤더를 허용했을 가능성을 대비해 직접 Fetch 시도
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    return await response.text();
+                }
+            } catch (e) {
+                console.log("Direct fetch blocked by CORS, trying Proxy 1...");
+            }
+
+            // 2단계: Proxy 1(corsproxy.io) 릴레이 시도
+            try {
+                const proxy1 = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+                const response = await fetch(proxy1);
+                if (response.ok) {
+                    return await response.text();
+                }
+            } catch (e) {
+                console.log("Proxy 1 failed, trying Proxy 2...");
+            }
+
+            // 3단계: Proxy 2(AllOrigins) 무차별 터널링 시도
+            const proxy2 = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+            const response = await fetch(proxy2);
+            if (response.ok) {
+                return await response.text();
+            }
+            throw new Error("All proxy attempts failed");
+        }
+
+        // 상단 인풋 영상 불러오기 버튼 클릭 핸들러 (원격 M3U 링크 입력 시 자동 가로채기 파서 가동)
+        loadBtn.addEventListener('click', async () => {
             if (!isTvOn) return;
             const url = linkInput.value.trim();
             if (!url) return;
 
             isCurrentLive = false;
+
+            // 원격 M3U 플레이리스트 링크 검출 
+            const isM3uPlaylistUrl = url.toLowerCase().includes('.m3u') && !url.toLowerCase().includes('.m3u8');
+
+            if (isM3uPlaylistUrl) {
+                try {
+                    playKnobSound();
+                    triggerOSD('LOAD...');
+                    loadBtn.textContent = "⏳ 파싱 중...";
+                    loadBtn.disabled = true;
+
+                    const fetchedText = await fetchRemoteM3u(url);
+                    const loadedList = parseM3uToPlaylist(fetchedText);
+
+                    if (loadedList.length > 0) {
+                        activePlaylist = loadedList; // 로드된 원격 M3U 목록으로 교체
+                        currentChannelIndex = 0;
+                        renderPlaylistDeck();
+                        
+                        const firstChannel = activePlaylist[0];
+                        isCurrentLive = (firstChannel.source.includes('.m3u8'));
+                        safeLoadVideo(firstChannel.source, false, firstChannel.name);
+                        
+                        triggerOSD('APPLY');
+                        linkInput.value = '';
+                        alert(`M3U 링크로부터 ${loadedList.length}개의 라이브 채널을 파싱하여 TV 편성표에 동기화 완료했습니다!`);
+                    } else {
+                        throw new Error("Parsed zero channels");
+                    }
+                } catch (e) {
+                    console.error(e);
+                    triggerOSD('ERR');
+                    alert("원격 M3U 링크 로딩에 실패했습니다. CORS 프록시 터널링 제한이 있거나 올바르지 않은 M3U 규격 링크입니다.");
+                } finally {
+                    loadBtn.textContent = "영상 불러오기";
+                    loadBtn.disabled = false;
+                }
+                return;
+            }
 
             if (isM3u8Url(url) || isMp4Url(url) || isYouTubePlaylist(url)) {
                 safeLoadVideo(url, true, 'AV INPUT');
@@ -1877,9 +1948,9 @@
             renderPlaylistDeck();
         });
 
-        // * M3U 파서 엔진 고도화 구현
+        // * M3U 파서 엔진 고도화 구현 (멀티 OS 개행 정합성 완벽 지원)
         function parseM3uToPlaylist(m3uText) {
-            const lines = m3uText.split('\n');
+            const lines = m3uText.split(/\r?\n/);
             const parsedList = [];
             let tempName = '';
 
@@ -1887,20 +1958,26 @@
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                if (line.startsWith('#EXTINF:')) {
-                    // #EXTINF:-1 tvg-id="..." , 채널 이름 형식 추출
+                if (line.toUpperCase().startsWith('#EXTINF:')) {
                     const commaIndex = line.lastIndexOf(',');
                     if (commaIndex !== -1) {
                         tempName = line.substring(commaIndex + 1).trim();
                     } else {
-                        tempName = 'IPTV 채널 ' + (parsedList.length + 1);
+                        // fallback to finding group-title or tvg-name
+                        const nameMatch = line.match(/tvg-name="([^"]+)"/) || line.match(/group-title="([^"]+)"/);
+                        tempName = nameMatch ? nameMatch[1] : '';
                     }
-                } else if (!line.startsWith('#')) {
-                    // 주소 파트 로딩
-                    parsedList.push({
-                        name: tempName || 'IPTV 채널 ' + (parsedList.length + 1),
-                        source: line
-                    });
+                } else if (line.startsWith('#')) {
+                    // Ignore other metadata lines like #EXTGRP, #EXTVLCOPT
+                    continue;
+                } else {
+                    // URL 주소 파트 로딩
+                    if (line.startsWith('http://') || line.startsWith('https://')) {
+                        parsedList.push({
+                            name: tempName || 'IPTV 채널 ' + (parsedList.length + 1),
+                            source: line
+                        });
+                    }
                     tempName = ''; // 초기화
                 }
             }
@@ -1909,7 +1986,7 @@
 
         // * 일반 복사 주소(유튜브, MP4 등) 개행 단위 일괄 파서 구현
         function parseBulkUrlsToPlaylist(bulkText) {
-            const lines = bulkText.split('\n');
+            const lines = bulkText.split(/\r?\n/);
             const parsedList = [];
 
             lines.forEach((line) => {
@@ -1931,8 +2008,13 @@
                         source = ytId;
                         name = `유튜브 비디오 ${parsedList.length + 1}`;
                     } else {
-                        // 규격화 실패 시 건너뜀
-                        return;
+                        // 일반 외부 주소일 때
+                        if (url.startsWith('http://') || url.startsWith('https://')) {
+                            name = `외부 스트림 ${parsedList.length + 1}`;
+                            source = url;
+                        } else {
+                            return;
+                        }
                     }
                 }
 
@@ -1942,16 +2024,55 @@
             return parsedList;
         }
 
-        // 일괄 파싱 메모패드 가져오기 기동
-        deckImportBtn.addEventListener('click', () => {
+        // 일괄 파싱 메모패드 가져오기 기동 (텍스트 감지 시 즉시 파싱, 원격 주소 감지 시 다운로드 터널링 실행)
+        deckImportBtn.addEventListener('click', async () => {
             const content = bulkImportTextarea.value.trim();
             if (!content) {
-                alert("가져올 M3U 파일 본문이나 비디오 링크 리스트를 입력해 주세요.");
+                alert("가져올 M3U 파일 본문, 원격 M3U 주소(http://...), 또는 개별 비디오 링크 리스트를 입력해 주세요.");
                 return;
             }
 
+            // 입력값 자체가 원격 단일 URL(m3u 파일 링크)인 경우 자동 감지
+            const isSingleUrl = (content.startsWith('http://') || content.startsWith('https://')) && !content.includes('\n');
+
+            playKnobSound();
+            triggerOSD('LOAD...');
+
+            if (isSingleUrl) {
+                try {
+                    deckImportBtn.textContent = "⏳ 원격 파일 파싱 중...";
+                    deckImportBtn.disabled = true;
+
+                    const fetchedText = await fetchRemoteM3u(content);
+                    let loadedList = [];
+                    if (fetchedText.toUpperCase().includes('#EXTM3U')) {
+                        loadedList = parseM3uToPlaylist(fetchedText);
+                    } else {
+                        loadedList = parseBulkUrlsToPlaylist(fetchedText);
+                    }
+
+                    if (loadedList.length === 0) {
+                        throw new Error("No channels detected");
+                    }
+
+                    activePlaylist = activePlaylist.concat(loadedList);
+                    bulkImportTextarea.value = '';
+                    renderPlaylistDeck();
+                    triggerOSD('SUCCESS');
+                    alert(`원격지 주소 분석 완료! 총 ${loadedList.length}개의 라이브 채널이 셋톱박스에 추가되었습니다.`);
+                } catch (err) {
+                    console.error(err);
+                    triggerOSD('ERR');
+                    alert("원격 M3U 재생목록을 다운로드하지 못했습니다. CORS 프록시 정책 제한이 있거나 유효하지 않은 M3U/M3U8 주소입니다.");
+                } finally {
+                    deckImportBtn.textContent = "📥 일괄 파싱 및 목록 가져오기";
+                    deckImportBtn.disabled = false;
+                }
+                return;
+            }
+
+            // 직접 텍스트를 붙여넣었을 때의 기본 로컬 파서 기동
             let loadedList = [];
-            // M3U 헤더 존재 여부로 자동 분류 기동
             if (content.toUpperCase().startsWith('#EXTM3U')) {
                 loadedList = parseM3uToPlaylist(content);
             } else {
@@ -1966,9 +2087,8 @@
             activePlaylist = activePlaylist.concat(loadedList);
             bulkImportTextarea.value = '';
 
-            playKnobSound();
             renderPlaylistDeck();
-            alert(`성공적으로 ${loadedList.length}개의 채널을 신규로 정렬 배치했습니다!`);
+            alert(`성공적으로 ${loadedList.length}개의 채널을 편성표에 일괄 추가했습니다!`);
         });
 
         // 설정한 편성표 TV에 적용
