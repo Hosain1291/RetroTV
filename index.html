@@ -113,14 +113,14 @@
             opacity: 0.8;
         }
 
-        /* 유튜브 플레이어 영역 */
+        /* 유튜브 플레이어 영역 (유효한 ID를 타겟팅하여 필터를 적용할 수 있게 구성) */
         #player-container {
             position: absolute;
             top: 50%; left: 50%;
             width: 100%; height: 100%;
             transform: translate(-50%, -50%);
             z-index: 1;
-            filter: grayscale(100%); /* 처음 접속 시 흑백 모드로 로딩 */
+            filter: grayscale(100%); /* 처음 접속 시 CSS 흑백 필터 작동 */
             transition: opacity 0.2s, filter 0.4s;
         }
 
@@ -402,7 +402,7 @@
     <audio id="knob-sound" src="data:audio/mpeg;base64,SUQzBAAAAAAAIVRYWENYAAAADklQTUNEUgAAABJDT01FAAAALAAAAGVuZ0lQTUNEUiBDb21tZW50AFhTU0gAAAAPTEFWRjU2LjM2LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAAAAACQABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBASw=="></audio>
     
     <script>
-        // DOM 요소 정의
+        // DOM 요소 정의 (교체 위험이 없는 요소만 초기에 캐싱)
         const powerKnob = document.getElementById('power-knob');
         const volumeKnob = document.getElementById('volume-knob');
         const channelDownKnob = document.getElementById('channel-down-knob');
@@ -414,13 +414,15 @@
         const channelEffect = document.querySelector('.channel-change-effect');
         const powerOffOverlay = document.getElementById('power-off-overlay');
         const powerOffLine = document.getElementById('power-off-line');
-        const playerContainer = document.getElementById('player-container');
         const linkInput = document.getElementById('youtube-link-input');
         const loadBtn = document.getElementById('load-video-btn');
         const createLinkBtn = document.getElementById('create-share-link-btn');
         const shareDisplay = document.getElementById('share-link-display');
         const unmuteMessage = document.getElementById('unmute-message');
         const knobSound = document.getElementById('knob-sound');
+
+        // 유튜브 API 가 소스코드를 교체하더라도 항상 최신의 active <iframe> 에 접근할 수 있는 동적 헬퍼 함수
+        const getPlayerElement = () => document.getElementById('player-container');
 
         // 요청해주신 기본 채널 8개
         const defaultChannels = [
@@ -477,7 +479,7 @@
         });
         document.addEventListener('DOMContentLoaded', handleResize);
 
-        // * 유튜브 API를 로딩하기 직전에 전역 API 준비 핸들러를 먼저 선언하여 Race Condition을 원천 방지합니다.
+        // * 유튜브 API를 로딩하기 직전에 전역 준비 핸들러를 먼저 안전하게 선언합니다.
         function onYouTubeIframeAPIReady() {
             const initialVideoId = getInitialVideoId();
             currentVideoId = initialVideoId;
@@ -491,8 +493,8 @@
                     'controls': 0, 
                     'rel': 0, 
                     'showinfo': 0, 
-                    'mute': 1,        // 모바일 자동재생 허용을 위해 최초 무음(Muted) 적용
-                    'playsinline': 1,  // 모바일 브라우저에서 유튜브 전체화면 가로채기 방지
+                    'mute': 1,        // 모바일 웹 자동재생 허용을 위해 무음 기동
+                    'playsinline': 1,  // 모바일 가로채기 방지
                     'enablejsapi': 1
                 },
                 events: { 
@@ -503,7 +505,7 @@
             handleResize();
         }
 
-        // 유튜브 API 스크립트의 비동기 안전 로딩 방식 적용
+        // 유튜브 API 스크립트 비동기 로드 실행
         (function loadYouTubeAPI() {
             const tag = document.createElement('script');
             tag.src = "https://www.youtube.com/iframe_api";
@@ -513,14 +515,17 @@
 
         function onPlayerReady(event) {
             event.target.mute();
-            event.target.playVideo(); // 접속 즉시 영상 기동
+            event.target.playVideo(); // 즉시 영상 기동
             
             powerKnob.classList.add('on');
             powerKnob.style.setProperty('--rotation', '45deg');
             noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
             
-            // * 흑백 필터 세팅
-            playerContainer.style.filter = colorModes[currentColorIndex];
+            // * 재생 성공 직후 실제 active iframe 요소에 초기 흑백(grayscale) 필터 스타일 삽입
+            const el = getPlayerElement();
+            if (el) {
+                el.style.filter = colorModes[currentColorIndex];
+            }
             handleResize();
         }
 
@@ -561,7 +566,10 @@
             if (player) {
                 player.pauseVideo();
             }
-            playerContainer.style.opacity = '0';
+            const el = getPlayerElement();
+            if (el) {
+                el.style.opacity = '0';
+            }
             powerOffLine.style.display = 'none';
             powerOffOverlay.style.display = 'flex';
             
@@ -579,7 +587,10 @@
             setTimeout(() => { powerOffLine.style.width = '100%'; }, 10);
             setTimeout(() => {
                 powerOffOverlay.style.display = 'none';
-                playerContainer.style.opacity = '1';
+                const el = getPlayerElement();
+                if (el) {
+                    el.style.opacity = '1';
+                }
                 
                 if (player) {
                     player.playVideo();
@@ -654,16 +665,19 @@
             noiseKnob.style.setProperty('--rotation', `${currentNoiseIndex * 60}deg`);
         });
 
-        // * COLOR 조절기 (흑백 ➔ 컬러 ➔ 세피아 순서 순환 및 노브 실제 회전 기능 탑재)
+        // * COLOR 조절기 (동적 엘리먼트 쿼리로 버그 완벽 대처!)
         colorKnob.addEventListener('click', () => {
             if (!isTvOn) return;
             playKnobSound();
             currentColorIndex = (currentColorIndex + 1) % colorModes.length;
             
-            // 비디오 화면에 실시간 CSS 필터 인젝션
-            playerContainer.style.filter = colorModes[currentColorIndex];
+            // 실시간으로 유튜브 active iframe 객체에 CSS 필터 인젝션
+            const el = getPlayerElement();
+            if (el) {
+                el.style.filter = colorModes[currentColorIndex];
+            }
             
-            // 컬러 노브 물리 회전 매핑 (0도, 120도, 240도)
+            // 컬러 노브 물리 회전 매핑 (0도[흑백] ➔ 120도[컬러] ➔ 240도[세피아])
             colorKnob.style.setProperty('--rotation', `${currentColorIndex * 120}deg`);
         });
 
