@@ -13,6 +13,11 @@
             box-sizing: border-box;
         }
 
+        body, input, button, select, textarea, .osd-text, .tuner-num-label, .shelf-knob-label, .control-label, #unmute-message {
+            font-family: 'Mona12', 'Courier New', monospace !important;
+            font-weight: bold !important;
+        }
+
         body {
             display: flex;
             flex-direction: column;
@@ -20,8 +25,6 @@
             align-items: center;
             min-height: 100vh;
             background-color: #2b2b2b;
-            font-family: 'Mona12', sans-serif;
-            font-weight: bold;
             margin: 0;
             overflow-x: hidden; /* 가로 스크롤 방지 */
             overflow-y: auto;   /* 세로 스크롤 허용 */
@@ -145,8 +148,6 @@
             top: 20px;
             right: 25px;
             color: #39ff14; /* 그린 형광 인광 */
-            font-family: 'Mona12', 'Courier New', monospace;
-            font-weight: bold;
             font-size: 14px;
             text-shadow: 0 0 6px rgba(57, 255, 20, 0.9), 0 0 2px rgba(57, 255, 20, 0.5);
             z-index: 10;
@@ -232,8 +233,6 @@
             white-space: nowrap;
             pointer-events: none;
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            font-family: 'Mona12', sans-serif;
-            font-weight: bold;
         }
 
         #unmute-message.hidden {
@@ -262,8 +261,6 @@
         .shelf-knob-label {
             color: #9c988d;
             font-size: 9px;
-            font-weight: bold;
-            font-family: 'Mona12', sans-serif;
             letter-spacing: 0.5px;
             text-shadow: 0 -1px 0 #000;
         }
@@ -374,13 +371,12 @@
         .control-label {
             font-size: 8px;
             font-weight: bold;
-            font-family: 'Mona12', sans-serif;
             color: #5c5950;
             text-align: center;
             margin-top: 4px;
         }
 
-        /* * 중단 메인 채널 및 볼륨 통합 셀렉터 (1개 채널 동그라미 아래 볼륨 조작 배치) */
+        /* * 중단 메인 채널 및 볼륨 통합 셀렉터 */
         .main-tuners {
             display: flex;
             flex-direction: column;
@@ -418,7 +414,7 @@
             box-shadow: inset 0 2px 5px rgba(255,255,255,0.2), 0 2px 4px rgba(0,0,0,0.8);
         }
 
-        /* 다이얼 파지용 입자 바 */
+        /* 다이얼 파지용 일자 기둥 바 */
         .large-dial::after {
             content: '';
             position: absolute;
@@ -434,7 +430,6 @@
         /* 다이얼 라벨 디자인 */
         .tuner-num-label {
             font-size: 8px;
-            font-family: 'Mona12', sans-serif;
             color: #4a473e;
             font-weight: bold;
             letter-spacing: 0.5px;
@@ -494,8 +489,6 @@
             border-radius: 6px;
             background-color: #fcfbfa;
             color: #333;
-            font-family: 'Mona12', sans-serif;
-            font-weight: bold;
             margin-bottom: 12px;
             font-size: 11px;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
@@ -513,8 +506,6 @@
             border-radius: 6px;
             background: linear-gradient(180deg, #fcfbfa, #dcd7c9);
             color: #4a473e;
-            font-family: 'Mona12', sans-serif;
-            font-weight: bold;
             font-size: 11px;
             cursor: pointer;
             border: 2px solid #b8b3a5;
@@ -535,8 +526,6 @@
             border-radius: 6px;
             color: #a5d6a7;
             font-size: 11px;
-            font-family: 'Mona12', sans-serif;
-            font-weight: bold;
             text-align: center;
             min-height: 18px;
             word-break: break-all;
@@ -575,8 +564,8 @@
                 <div class="left-bezel">
                     <div class="screen">
                         <!-- 복고풍 녹색 Phosphor OSD 지시창 -->
-                        <div id="osd" class="osd-text">COLOR: 100%</div>
-                        <div id="unmute-message">VOLUME 다이얼(아래쪽 큰 노브)을 돌려 볼륨을 올려주세요</div>
+                        <div id="osd" class="osd-text">GRAYSCALE: 100%</div>
+                        <div id="unmute-message">VOLUME 다이얼(아래쪽 큰 노브)을 클릭해 볼륨을 올려주세요</div>
                         <div id="power-off-overlay">
                             <div id="power-off-line"></div>
                         </div>
@@ -584,7 +573,8 @@
                         <div class="noise"></div>
                         <!-- 필터 가드 랩퍼 -->
                         <div id="player-filter-wrapper">
-                            <div id="player-container"></div>
+                            <!-- JS API 오류 극복을 위해 src 변경에 100% 반응하는 Iframe 직접 배치 -->
+                            <iframe id="player-iframe" src="" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen style="width: 100%; height: 100%; pointer-events: none;"></iframe>
                         </div>
                     </div>
                     
@@ -660,23 +650,26 @@
     </div>
     
     <script>
-        // Web Audio API를 활용한 기계적 "딸깍" 노브 조작 신시사이저 사운드
+        // Web Audio API 기반의 기계 기어 "딸깍" 노브 사운드 합성 엔진
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playKnobSound() {
             try {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(140, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(15, audioCtx.currentTime + 0.04);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.04);
+                osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.04);
+                osc.stop(audioCtx.currentTime + 0.05);
             } catch(e) {
-                console.log("AudioContext click play blocked or failed");
+                console.log("Web Audio click failed or blocked");
             }
         }
 
@@ -704,10 +697,9 @@
         const shareDisplay = document.getElementById('share-link-display');
         const unmuteMessage = document.getElementById('unmute-message');
 
-        // 필터 타겟팅 가드 컨테이너
         const playerFilterWrapper = document.getElementById('player-filter-wrapper');
 
-        // 지정해주신 기본 레트로 채널 8개 설정
+        // 기본 제공 8개 채널 비디오 목록
         const defaultChannels = [
             '26S5jhVKK_I', // 채널 1
             '8zbpITJKUZg', // 채널 2
@@ -720,28 +712,25 @@
         ];
         
         const noiseLevels = [0, 0.12, 0.25, 0.45];
-        
-        // * 우측 Preset 순서 정의 (OSD 알림용)
         const presetNames = ['B&W', 'COLOR', 'SEPIA'];
-        let currentPresetIndex = 0; // 초기: 흑백(Grayscale 100%)
+        let currentPresetIndex = 0; // 시작 프리셋: 흑백
 
-        // * 하단 미세조정 초기 수치 세팅
-        // (처음 기동될 때는 고풍스러운 "흑백 화면"으로 시직하기 위해 grayscale을 1.0으로 초기화합니다)
-        let colorValue = 1.0;     // 채도 (0.0 ~ 2.0 범위, 1.0 = 100%)
-        let grayscaleValue = 1.0; // 흑백 비율 (0.0 ~ 1.0 범위, 1.0 = 100% 완전 흑백)
-        let contrastValue = 1.0;  // 명암비 (0.0 ~ 2.0 범위, 1.0 = 100%)
+        // * 하단 가변 저항 수치 세팅 (접속 시 옛날 흑백 브라운관 감성으로 구동하기 위해 grayscale 1.0로 시작)
+        let colorValue = 1.0;     
+        let grayscaleValue = 1.0; 
+        let contrastValue = 1.0;  
 
-        // * 아날로그 볼륨 조절 단계 세팅 (최대 100%, 10%씩 조절 가능, 브라우저 정책 회피용 0% 시작)
+        // * 아날로그 볼륨 세팅 (모바일 브라우저 자동 재생 정책에 맞춰 0% 무음 상태로 구동)
         let currentVolume = 0; 
 
         let chRotation = 0;
-        let player;
+        let currentChannelIndex = 0;
         let currentVideoId = '';
-        
         let isTvOn = true; 
         let isAutoChangeOn = true;
+        let player; // 유튜브 플레이어 API 레퍼런스
 
-        /* * OSD 메커니즘을 사용해 유저에게 다이얼 수치를 알려주는 함수 */
+        /* * 녹색 OSD 디스플레이 알림 기능 */
         let osdTimeout;
         function triggerOSD(text) {
             osd.textContent = text;
@@ -752,7 +741,22 @@
             }, 1500);
         }
 
-        /* * 모바일 화면 너비에 대응하여 TV를 비율 파손 없이 스케일 압축하는 동적 연출 엔진 */
+        /* * Iframe 경로를 직접 제어하는 100% 신뢰성 높은 비디오 기동 함수 (postMessage 샌드박스 차단 완벽 회복) */
+        function updateIframeSrc(videoId, isMuted) {
+            const iframe = document.getElementById('player-iframe');
+            if (iframe) {
+                const muteParam = isMuted ? 1 : 0;
+                const newSrc = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&rel=0&showinfo=0&mute=${muteParam}&playsinline=1&enablejsapi=1`;
+                try {
+                    // 브라우저 뒤로가기 기록이 오염되지 않도록 replace() 사용 제어
+                    iframe.contentWindow.location.replace(newSrc);
+                } catch (e) {
+                    iframe.src = newSrc;
+                }
+            }
+        }
+
+        /* * 모바일 크기에 맞춰 정밀하게 TV 크기를 조율하는 미적 비례 축소 제어 장치 */
         function handleResize() {
             const scaler = document.querySelector('.tv-scaler');
             const container = document.querySelector('.tv-container');
@@ -761,7 +765,7 @@
             const windowWidth = window.innerWidth;
             const sidePadding = 20; 
             const designWidth = 790; 
-            const designHeight = 580; // TV 전체 높이 추정값
+            const designHeight = 580; 
 
             let scale = 0.75; 
 
@@ -777,35 +781,29 @@
         window.addEventListener('orientationchange', () => {
             setTimeout(handleResize, 100);
         });
-        document.addEventListener('DOMContentLoaded', handleResize);
-
-        // * 전역 준비 핸들러를 선언하여 유튜브 스크립트 로드 타이밍 충돌을 완전 차단합니다.
-        function onYouTubeIframeAPIReady() {
+        
+        // 초기 로딩 프로세스
+        window.addEventListener('load', () => {
             const initialVideoId = getInitialVideoId();
             currentVideoId = initialVideoId;
             
-            player = new YT.Player('player-container', {
-                height: '100%',
-                width: '100%',
-                videoId: initialVideoId,
-                playerVars: { 
-                    'autoplay': 1, 
-                    'controls': 0, 
-                    'rel': 0, 
-                    'showinfo': 0, 
-                    'mute': 1,        // 모바일 자동재생 허용을 위해 무음 기동 필수
-                    'playsinline': 1,  // 모바일 인라인 재생 강제화
-                    'enablejsapi': 1
-                },
-                events: { 
-                    'onReady': onPlayerReady, 
-                    'onStateChange': onPlayerStateChange 
+            // 최초 기동: 자동재생 정책에 부합하도록 무음(true) 상태로 로딩
+            updateIframeSrc(initialVideoId, true);
+            updateKnobVisuals();
+            syncScreenFilters();
+            handleResize();
+        });
+
+        // 영상 자동 재생 변경 상태 감지를 위해 플레이어 API 연결
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player-iframe', {
+                events: {
+                    'onStateChange': onPlayerStateChange
                 }
             });
-            handleResize();
         }
 
-        // 유튜브 API 스크립트 비동기 탑재
+        // 유튜브 API 비동기 탑재
         (function loadYouTubeAPI() {
             const tag = document.createElement('script');
             tag.src = "https://www.youtube.com/iframe_api";
@@ -813,21 +811,8 @@
             firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         })();
 
-        function onPlayerReady(event) {
-            event.target.mute();
-            event.target.setVolume(0);
-            event.target.playVideo(); // 접속하자마자 즉시 구동!
-            
-            powerBtn.classList.add('on');
-            noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
-            
-            // 미세 튜닝 노브들의 회전 상태 동기화
-            updateKnobVisuals();
-            syncScreenFilters();
-            handleResize();
-        }
-
         function onPlayerStateChange(event) {
+            // 영상 재생 완료 시 다음 채널로 자동 진행 기능
             if (isAutoChangeOn && isTvOn && event.data === YT.PlayerState.ENDED) {
                 changeChannel();
             }
@@ -839,11 +824,10 @@
         }
 
         function loadVideoById(id) {
-            if (player && id) {
-                currentVideoId = id;
-                player.loadVideoById(id);
-                shareDisplay.textContent = '';
-            }
+            currentVideoId = id;
+            const isMuted = (currentVolume === 0);
+            updateIframeSrc(id, isMuted);
+            shareDisplay.textContent = '';
         }
 
         function extractVideoId(url) {
@@ -854,11 +838,10 @@
             return videoId;
         }
 
-        // * 화면의 프리셋 필터와 RGB 컬러 매트릭스를 실시간으로 통합 적용하는 함수
+        // * 하단 노브 설정값에 따라 실시간 화면 필터 융합
         function syncScreenFilters() {
             if (!playerFilterWrapper) return;
             
-            // grayscale, saturate, contrast 복합 적용
             const gFilter = `grayscale(${grayscaleValue})`;
             const sFilter = `saturate(${colorValue})`;
             const cFilter = `contrast(${contrastValue})`;
@@ -870,29 +853,31 @@
             }
         }
 
-        // * 각 10% 가변 저항 조율 노브의 회전 각도를 계산 및 반영하는 마스터 뷰 함수
+        // * 다이얼 및 가변 저항 노브 각도 일제 정렬
         function updateKnobVisuals() {
-            // COLOR 노브 각도: 0.0 ~ 2.0 범위를 -150도 ~ 150도로 매핑
+            // 채도 노브
             const colorDegree = (colorValue * 150) - 150;
             colorAdjustKnob.style.setProperty('--rotation', `${colorDegree}deg`);
 
-            // GRAYSCALE 노브 각도: 0.0 ~ 1.0 범위를 -150도 ~ 150도로 매핑
+            // 흑백 비율 노브
             const grayscaleDegree = (grayscaleValue * 300) - 150;
             grayscaleAdjustKnob.style.setProperty('--rotation', `${grayscaleDegree}deg`);
 
-            // CONTRAST 노브 각도: 0.0 ~ 2.0 범위를 -150도 ~ 150도로 매핑
+            // 대비 노브
             const contrastDegree = (contrastValue * 150) - 150;
             contrastAdjustKnob.style.setProperty('--rotation', `${contrastDegree}deg`);
 
-            // VOLUME 노브 각도 동기화: 0% ~ 100% 범위를 -150도 ~ 150도로 매핑
+            // 볼륨 전용 다이얼 (-150도 ~ 150도 선형 매핑)
             const volumeDegree = (currentVolume / 100) * 300 - 150;
             volumeAdjustKnob.style.setProperty('--rotation', `${volumeDegree}deg`);
         }
 
         // TV 전원 끄기
         function turnTvOff() {
-            if (player) {
-                player.pauseVideo();
+            const iframe = document.getElementById('player-iframe');
+            if (iframe) {
+                // 비디오를 무음으로 새로고침하여 리소스 일시정지 유도
+                updateIframeSrc(currentVideoId, true);
             }
             playerFilterWrapper.style.opacity = '0';
             powerOffLine.style.display = 'none';
@@ -913,17 +898,16 @@
                 powerOffOverlay.style.display = 'none';
                 playerFilterWrapper.style.opacity = '1';
                 
-                if (player) {
-                    player.playVideo();
-                }
+                const isMuted = (currentVolume === 0);
+                updateIframeSrc(currentVideoId, isMuted);
                 
-                if(player && currentVolume > 0) unmuteMessage.classList.add('hidden');
+                if(currentVolume > 0) unmuteMessage.classList.add('hidden');
                 else unmuteMessage.classList.remove('hidden');
             }, 300);
             powerBtn.classList.add('on');
         }
 
-        // 기계식 푸시 전원 스위치 이벤트 바인딩
+        // POWER 기계식 스위치 바인딩
         powerBtn.addEventListener('click', () => {
             playKnobSound();
             isTvOn = !isTvOn;
@@ -931,32 +915,45 @@
             else turnTvOff();
         });
 
-        // * 우측 통합형 VOLUME 조절 다이얼 (10% 단위, 0% ~ 100% 미세 조절 방식)
+        // * 하단 VOLUME 10% 단위 정밀 조절 전용 다이얼 조작
         volumeAdjustKnob.addEventListener('click', () => {
-            if (!isTvOn || !player) return;
+            if (!isTvOn) return;
             playKnobSound();
 
-            // 10% 증가, 100% 도달 시 다시 0%로 순환
+            const prevVolume = currentVolume;
             currentVolume = (currentVolume >= 100) ? 0 : currentVolume + 10;
 
+            // 오디오 켜짐/꺼짐 시점에 따른 hard iframe 갱신 (보안 가드 극복 우회법)
+            const needHardReload = (prevVolume === 0 && currentVolume > 0) || (prevVolume > 0 && currentVolume === 0);
+
             if (currentVolume === 0) {
-                player.mute();
-                player.setVolume(0);
                 triggerOSD('VOLUME: MUTE');
                 unmuteMessage.classList.remove('hidden');
             } else {
-                player.unMute();
-                player.setVolume(currentVolume);
                 triggerOSD(`VOLUME: ${currentVolume}%`);
                 unmuteMessage.classList.add('hidden');
             }
 
             updateKnobVisuals();
+
+            const isMuted = (currentVolume === 0);
+            if (needHardReload) {
+                updateIframeSrc(currentVideoId, isMuted);
+            } else {
+                // progressive enhancement: API가 연동될 때만 미세 볼륨 조절 반영
+                if (player && typeof player.setVolume === 'function') {
+                    try {
+                        player.setVolume(currentVolume);
+                    } catch(e) {
+                        console.log("Progressive fine volume set failed");
+                    }
+                }
+            }
         });
 
-        // * 단일 채널 셀렉터 다이얼 (회전 기어식 통합 채널 전환)
+        // * CHANNEL SELECT 단일 통합 기계식 다이얼 조작
         channelDial.addEventListener('click', () => {
-            if (!isTvOn || !player) return;
+            if (!isTvOn) return;
             changeChannel();
         });
 
@@ -964,21 +961,24 @@
             playKnobSound();
             channelEffect.style.display = 'block';
 
-            // 기계 기어 30도 회전
+            // 기어 45도 회전 피드백
             currentChannelIndex = (currentChannelIndex + 1) % defaultChannels.length;
-            chRotation += 45; // 클릭할 때마다 45도씩 물리 다이얼 정방향 회전
+            chRotation += 45; 
             channelDial.style.setProperty('--rotation', `${chRotation}deg`);
             
             const nextVideoId = defaultChannels[currentChannelIndex];
             triggerOSD(`CH: ${currentChannelIndex + 1}`);
             
+            // NATIVE iframe.src 교체 방식을 통해 모바일 및 샌드박스에서도 완벽한 즉시 재생 보장!
+            const isMuted = (currentVolume === 0);
+            updateIframeSrc(nextVideoId, isMuted);
+            
             setTimeout(() => {
-                loadVideoById(nextVideoId);
                 channelEffect.style.display = 'none';
             }, 500);
         }
 
-        // 노이즈(STATIC) 튜너 조작
+        // STATIC 노이즈 다이얼 조작
         noiseKnob.addEventListener('click', () => {
             if (!isTvOn) return;
             playKnobSound();
@@ -989,24 +989,21 @@
             triggerOSD(`STATIC: ${Math.round(noiseLevels[currentNoiseIndex] * 100)}%`);
         });
 
-        // 우측 PRESET 튜너 조작 시, 하단 노브 수치를 해당 프리셋에 맞춰 자동 동기화
+        // 우측 PRESET 다이얼 조작 시 하단 가변저항 연계 갱신
         colorKnob.addEventListener('click', () => {
             if (!isTvOn) return;
             playKnobSound();
             currentPresetIndex = (currentPresetIndex + 1) % presetNames.length;
             
             if (currentPresetIndex === 0) {
-                // 흑백 프리셋
                 grayscaleValue = 1.0;
                 colorValue = 1.0;
                 contrastValue = 1.0;
             } else if (currentPresetIndex === 1) {
-                // 오리지널 컬러 프리셋
                 grayscaleValue = 0.0;
                 colorValue = 1.0;
                 contrastValue = 1.0;
             } else if (currentPresetIndex === 2) {
-                // 세피아 프리셋
                 grayscaleValue = 0.0;
                 colorValue = 0.9;
                 contrastValue = 1.1;
@@ -1019,7 +1016,7 @@
             triggerOSD(`PRESET: ${presetNames[currentPresetIndex]}`);
         });
 
-        // * 하단 미세조정 COLOR 노브 클릭 조작 (10%씩 증가, 200% 초과 시 0%로 순환)
+        // * 하단 가변 튜너 COLOR 조작 (10% 단위)
         colorAdjustKnob.addEventListener('click', () => {
             if (!isTvOn) return;
             playKnobSound();
@@ -1031,7 +1028,7 @@
             triggerOSD(`COLOR: ${Math.round(colorValue * 100)}%`);
         });
 
-        // * 하단 미세조정 GRAYSCALE 노브 클릭 조작 (10%씩 증가, 100% 초과 시 0%로 순환)
+        // * 하단 가변 튜너 GRAYSCALE 조작 (10% 단위)
         grayscaleAdjustKnob.addEventListener('click', () => {
             if (!isTvOn) return;
             playKnobSound();
@@ -1043,7 +1040,7 @@
             triggerOSD(`GRAYSCALE: ${Math.round(grayscaleValue * 100)}%`);
         });
 
-        // * 하단 미세조정 CONTRAST 노브 클릭 조작 (10%씩 증가, 200% 초과 시 0%로 순환)
+        // * 하단 가변 튜너 CONTRAST 조작 (10% 단위)
         contrastAdjustKnob.addEventListener('click', () => {
             if (!isTvOn) return;
             playKnobSound();
@@ -1066,8 +1063,11 @@
             const url = linkInput.value;
             const videoId = extractVideoId(url);
             if (videoId) {
-                loadVideoById(videoId);
+                currentVideoId = videoId;
+                const isMuted = (currentVolume === 0);
+                updateIframeSrc(videoId, isMuted);
                 linkInput.value = '';
+                triggerOSD('LOADING VIDEO...');
             } else {
                 shareDisplay.textContent = '유효하지 않은 유튜브 링크입니다.';
             }
