@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>My Old TV - Mona 10% Analog Edition</title>
+    <title>My Old TV - Mona Single Dial Edition</title>
     <style>
         /* Mona12 도트 픽셀 폰트 로드 */
         @import url('https://cdn.jsdelivr.net/gh/MonadABXY/mona-font/web/mona.css');
@@ -380,13 +380,14 @@
             margin-top: 4px;
         }
 
-        /* * 중단 메인 채널 선택 튜너 (거대 기계식 노브 구현) */
+        /* * 중단 메인 채널 및 볼륨 통합 셀렉터 (1개 채널 동그라미 아래 볼륨 조작 배치) */
         .main-tuners {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 15px;
-            margin: 15px 0;
+            gap: 12px;
+            margin: 10px 0;
+            width: 100%;
         }
 
         .tuner-outer {
@@ -402,7 +403,7 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
 
-        /* 큰 기계 다이얼 */
+        /* 메인 아날로그 기계 다이얼 */
         .large-dial {
             --rotation: 0deg;
             width: 68px;
@@ -412,12 +413,12 @@
             border: 3px solid #555;
             position: relative;
             transform: rotate(var(--rotation));
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             cursor: pointer;
             box-shadow: inset 0 2px 5px rgba(255,255,255,0.2), 0 2px 4px rgba(0,0,0,0.8);
         }
 
-        /* 다이얼 파지용 일자 기둥 바 */
+        /* 다이얼 파지용 입자 바 */
         .large-dial::after {
             content: '';
             position: absolute;
@@ -430,17 +431,19 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
 
-        /* 다이얼 장식 채널 숫자 표시구 기판 */
+        /* 다이얼 라벨 디자인 */
         .tuner-num-label {
             font-size: 8px;
             font-family: 'Mona12', sans-serif;
             color: #4a473e;
             font-weight: bold;
             letter-spacing: 0.5px;
-            margin-top: 2px;
+            margin-top: 1px;
+            margin-bottom: 6px;
+            text-align: center;
         }
 
-        /* * 하단 빈티지 가로 스피커 그릴 (다크 우드 몰딩) */
+        /* * 하단 빈티지 가로 스피커 그릴 */
         .speaker-grill {
             width: 100%;
             height: 110px;
@@ -573,7 +576,7 @@
                     <div class="screen">
                         <!-- 복고풍 녹색 Phosphor OSD 지시창 -->
                         <div id="osd" class="osd-text">COLOR: 100%</div>
-                        <div id="unmute-message">VOLUME 노브(볼륨 다이얼)를 클릭하면 소리가 켜집니다</div>
+                        <div id="unmute-message">VOLUME 다이얼(아래쪽 큰 노브)을 돌려 볼륨을 올려주세요</div>
                         <div id="power-off-overlay">
                             <div id="power-off-line"></div>
                         </div>
@@ -602,16 +605,12 @@
                     </div>
                 </div>
 
-                <!-- 우측 컨트롤러 플레이트 영역 -->
+                <!-- 우측 컨트롤러 플레이트 영역 (1개 채널 다이얼 + 1개 볼륨 다이얼) -->
                 <div class="right-bezel">
                     <div class="top-sub-controls">
                         <div class="power-btn-wrapper">
                             <div class="power-button on" id="power-btn"></div>
                             <span class="control-label">POWER</span>
-                        </div>
-                        <div style="text-align: center;">
-                            <div class="sub-knob" id="volume-knob" style="--rotation: 0deg;"></div>
-                            <span class="control-label">VOLUME</span>
                         </div>
                         <div style="text-align: center;">
                             <div class="sub-knob" id="noise-knob" style="--rotation: 60deg;"></div>
@@ -623,17 +622,17 @@
                         </div>
                     </div>
 
-                    <!-- 2개의 초대형 아날로그 채널 셀렉터 (VHF/UHF 다이얼 재현) -->
+                    <!-- 단일 채널 셀렉터 다이얼 및 하단 정밀 볼륨 조절 다이얼 -->
                     <div class="main-tuners">
                         <div class="tuner-outer">
-                            <div class="large-dial" id="channel-up-dial" style="--rotation: 0deg;"></div>
+                            <div class="large-dial" id="channel-dial" style="--rotation: 0deg;"></div>
                         </div>
-                        <span class="tuner-num-label">CHANNEL ▲</span>
+                        <span class="tuner-num-label">CHANNEL SELECT</span>
 
                         <div class="tuner-outer">
-                            <div class="large-dial" id="channel-down-dial" style="--rotation: 0deg;"></div>
+                            <div class="large-dial" id="volume-adjust-knob" style="--rotation: -150deg;"></div>
                         </div>
-                        <span class="tuner-num-label">CHANNEL ▼</span>
+                        <span class="tuner-num-label">VOLUME (0-100%)</span>
                     </div>
 
                     <!-- 클래식 메탈 슬릿 스피커 그릴 -->
@@ -660,19 +659,35 @@
         <div id="share-link-display"></div>
     </div>
     
-    <!-- 아날로그 기계 스위치 소리 -->
-    <audio id="knob-sound" src="data:audio/mpeg;base64,SUQzBAAAAAAAIVRYWENYAAAADklQTUNEUgAAABJDT01FAAAALAAAAGVuZ0lQTUNEUiBDb21tZW50AFhTU0gAAAAPTEFWRjU2LjM2LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAAAAACQABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBASw=="></audio>
-    
     <script>
+        // Web Audio API를 활용한 기계적 "딸깍" 노브 조작 신시사이저 사운드
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playKnobSound() {
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(140, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(15, audioCtx.currentTime + 0.04);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.04);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.04);
+            } catch(e) {
+                console.log("AudioContext click play blocked or failed");
+            }
+        }
+
         // DOM 요소 정의
         const powerBtn = document.getElementById('power-btn');
-        const volumeKnob = document.getElementById('volume-knob');
-        const channelDownDial = document.getElementById('channel-down-dial');
-        const channelUpDial = document.getElementById('channel-up-dial');
+        const channelDial = document.getElementById('channel-dial');
+        const volumeAdjustKnob = document.getElementById('volume-adjust-knob');
         const noiseKnob = document.getElementById('noise-knob');
         const colorKnob = document.getElementById('color-knob');
         
-        // 하단 새로운 10% 미세조정 노브 매핑
+        // 하단 10% 미세조정 노브
         const colorAdjustKnob = document.getElementById('color-adjust-knob');
         const grayscaleAdjustKnob = document.getElementById('grayscale-adjust-knob');
         const contrastAdjustKnob = document.getElementById('contrast-adjust-knob');
@@ -688,7 +703,6 @@
         const createLinkBtn = document.getElementById('create-share-link-btn');
         const shareDisplay = document.getElementById('share-link-display');
         const unmuteMessage = document.getElementById('unmute-message');
-        const knobSound = document.getElementById('knob-sound');
 
         // 필터 타겟팅 가드 컨테이너
         const playerFilterWrapper = document.getElementById('player-filter-wrapper');
@@ -712,13 +726,15 @@
         let currentPresetIndex = 0; // 초기: 흑백(Grayscale 100%)
 
         // * 하단 미세조정 초기 수치 세팅
-        // (처음 켰을 때는 옛날 분위기가 물씬 풍기는 "흑백 화면"으로 시작하기 위해 grayscale을 1.0으로 초기화합니다)
+        // (처음 기동될 때는 고풍스러운 "흑백 화면"으로 시직하기 위해 grayscale을 1.0으로 초기화합니다)
         let colorValue = 1.0;     // 채도 (0.0 ~ 2.0 범위, 1.0 = 100%)
         let grayscaleValue = 1.0; // 흑백 비율 (0.0 ~ 1.0 범위, 1.0 = 100% 완전 흑백)
         let contrastValue = 1.0;  // 명암비 (0.0 ~ 2.0 범위, 1.0 = 100%)
 
-        let chUpRotation = 0;
-        let chDownRotation = 0;
+        // * 아날로그 볼륨 조절 단계 세팅 (최대 100%, 10%씩 조절 가능, 브라우저 정책 회피용 0% 시작)
+        let currentVolume = 0; 
+
+        let chRotation = 0;
         let player;
         let currentVideoId = '';
         
@@ -745,7 +761,7 @@
             const windowWidth = window.innerWidth;
             const sidePadding = 20; 
             const designWidth = 790; 
-            const designHeight = 580; // TV 전체 영역 높이 추정값
+            const designHeight = 580; // TV 전체 높이 추정값
 
             let scale = 0.75; 
 
@@ -777,8 +793,8 @@
                     'controls': 0, 
                     'rel': 0, 
                     'showinfo': 0, 
-                    'mute': 1,        // 모바일 웹 자동재생 차단 우회 정책 반영
-                    'playsinline': 1,  // 모바일 비디오 전체화면 레이오버 가로채기 방지
+                    'mute': 1,        // 모바일 자동재생 허용을 위해 무음 기동 필수
+                    'playsinline': 1,  // 모바일 인라인 재생 강제화
                     'enablejsapi': 1
                 },
                 events: { 
@@ -789,7 +805,7 @@
             handleResize();
         }
 
-        // 유튜브 API 스크립트 비동기 안전 탑재
+        // 유튜브 API 스크립트 비동기 탑재
         (function loadYouTubeAPI() {
             const tag = document.createElement('script');
             tag.src = "https://www.youtube.com/iframe_api";
@@ -799,7 +815,8 @@
 
         function onPlayerReady(event) {
             event.target.mute();
-            event.target.playVideo(); // 즉시 구동 성공!
+            event.target.setVolume(0);
+            event.target.playVideo(); // 접속하자마자 즉시 구동!
             
             powerBtn.classList.add('on');
             noiseOverlay.style.opacity = noiseLevels[currentNoiseIndex];
@@ -812,7 +829,7 @@
 
         function onPlayerStateChange(event) {
             if (isAutoChangeOn && isTvOn && event.data === YT.PlayerState.ENDED) {
-                changeChannel('up');
+                changeChannel();
             }
         }
 
@@ -836,13 +853,8 @@
             if (match) videoId = match[1];
             return videoId;
         }
-        
-        function playKnobSound() {
-            knobSound.currentTime = 0;
-            knobSound.play();
-        }
 
-        // * 미세조정 수치들을 종합하여 CSS 필터를 완성하고 iframe에 입힙니다.
+        // * 화면의 프리셋 필터와 RGB 컬러 매트릭스를 실시간으로 통합 적용하는 함수
         function syncScreenFilters() {
             if (!playerFilterWrapper) return;
             
@@ -851,9 +863,7 @@
             const sFilter = `saturate(${colorValue})`;
             const cFilter = `contrast(${contrastValue})`;
             
-            // 특정한 프리셋 모드(세피아 등) 연계가 필요할 때를 위한 결합 설계
             if (currentPresetIndex === 2) {
-                // 세피아 프리셋인 경우 세피아 필터를 베이스로 섞어줍니다.
                 playerFilterWrapper.style.filter = `sepia(0.8) ${gFilter} ${sFilter} ${cFilter}`;
             } else {
                 playerFilterWrapper.style.filter = `${gFilter} ${sFilter} ${cFilter}`;
@@ -873,6 +883,10 @@
             // CONTRAST 노브 각도: 0.0 ~ 2.0 범위를 -150도 ~ 150도로 매핑
             const contrastDegree = (contrastValue * 150) - 150;
             contrastAdjustKnob.style.setProperty('--rotation', `${contrastDegree}deg`);
+
+            // VOLUME 노브 각도 동기화: 0% ~ 100% 범위를 -150도 ~ 150도로 매핑
+            const volumeDegree = (currentVolume / 100) * 300 - 150;
+            volumeAdjustKnob.style.setProperty('--rotation', `${volumeDegree}deg`);
         }
 
         // TV 전원 끄기
@@ -903,7 +917,7 @@
                     player.playVideo();
                 }
                 
-                if(player && !player.isMuted()) unmuteMessage.classList.add('hidden');
+                if(player && currentVolume > 0) unmuteMessage.classList.add('hidden');
                 else unmuteMessage.classList.remove('hidden');
             }, 300);
             powerBtn.classList.add('on');
@@ -917,42 +931,43 @@
             else turnTvOff();
         });
 
-        // 우측 VOLUME 튜너 (소리 토글 및 로테이션)
-        volumeKnob.addEventListener('click', () => {
+        // * 우측 통합형 VOLUME 조절 다이얼 (10% 단위, 0% ~ 100% 미세 조절 방식)
+        volumeAdjustKnob.addEventListener('click', () => {
             if (!isTvOn || !player) return;
             playKnobSound();
-            if (player.isMuted()) {
-                player.unMute();
-                volumeKnob.classList.add('unmuted');
-                volumeKnob.style.setProperty('--rotation', '135deg'); // 켜짐 방향 회전
-                unmuteMessage.classList.add('hidden');
-                triggerOSD('SOUND: ON');
-            } else {
+
+            // 10% 증가, 100% 도달 시 다시 0%로 순환
+            currentVolume = (currentVolume >= 100) ? 0 : currentVolume + 10;
+
+            if (currentVolume === 0) {
                 player.mute();
-                volumeKnob.classList.remove('unmuted');
-                volumeKnob.style.setProperty('--rotation', '0deg'); // 제자리
-                triggerOSD('SOUND: MUTE');
+                player.setVolume(0);
+                triggerOSD('VOLUME: MUTE');
+                unmuteMessage.classList.remove('hidden');
+            } else {
+                player.unMute();
+                player.setVolume(currentVolume);
+                triggerOSD(`VOLUME: ${currentVolume}%`);
+                unmuteMessage.classList.add('hidden');
             }
+
+            updateKnobVisuals();
         });
 
-        // 대형 기계식 채널 다이얼 회전 연계 변경 기법
-        channelUpDial.addEventListener('click', () => changeChannel('up'));
-        channelDownDial.addEventListener('click', () => changeChannel('down'));
-
-        function changeChannel(direction) {
+        // * 단일 채널 셀렉터 다이얼 (회전 기어식 통합 채널 전환)
+        channelDial.addEventListener('click', () => {
             if (!isTvOn || !player) return;
+            changeChannel();
+        });
+
+        function changeChannel() {
             playKnobSound();
             channelEffect.style.display = 'block';
 
-            if (direction === 'up') {
-                currentChannelIndex = (currentChannelIndex + 1) % defaultChannels.length;
-                chUpRotation += 30; // 딸깍하며 30도씩 순방향 회전
-                channelUpDial.style.setProperty('--rotation', `${chUpRotation}deg`);
-            } else {
-                currentChannelIndex = (currentChannelIndex - 1 + defaultChannels.length) % defaultChannels.length;
-                chDownRotation -= 30; // 딸깍하며 30도씩 역방향 회전
-                channelDownDial.style.setProperty('--rotation', `${chDownRotation}deg`);
-            }
+            // 기계 기어 30도 회전
+            currentChannelIndex = (currentChannelIndex + 1) % defaultChannels.length;
+            chRotation += 45; // 클릭할 때마다 45도씩 물리 다이얼 정방향 회전
+            channelDial.style.setProperty('--rotation', `${chRotation}deg`);
             
             const nextVideoId = defaultChannels[currentChannelIndex];
             triggerOSD(`CH: ${currentChannelIndex + 1}`);
