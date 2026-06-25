@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>My Old TV</title>
+    <title>My Old TV - Ultimate All-In-One Autoplay Edition</title>
     <!-- HLS.js 라이브러리 탑재로 .m3u8 IPTV 스트리밍 완벽 지원 -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
@@ -15,7 +15,7 @@
             box-sizing: border-box;
         }
 
-        body, input, button, select, textarea, .osd-text, .tuner-num-label, .shelf-knob-label, .control-label, #unmute-message {
+        body, input, button, select, textarea, .osd-text, .tuner-num-label, .shelf-knob-label, .control-label, #unmute-message, .deck-title, .table-header, .table-row {
             font-family: 'Mona12', 'Courier New', monospace !important;
             font-weight: bold !important;
         }
@@ -148,15 +148,16 @@
         .osd-text {
             position: absolute;
             top: 25px;
-            right: 35px;
+            left: 35px; /* 길어진 정보 출력을 위해 왼쪽 고정 정렬 변경 */
             color: #39ff14; /* 그린 형광 인광 */
-            font-size: 38px; 
+            font-size: 26px; /* 텍스트 조화를 위해 소폭 스케일 조절 */
             text-shadow: 0 0 10px rgba(57, 255, 20, 1), 0 0 3px rgba(57, 255, 20, 0.6);
             z-index: 10;
             opacity: 0;
             transition: opacity 0.15s ease-in-out;
             pointer-events: none;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
+            white-space: nowrap;
         }
 
         /* 라이브 스트리밍일 때 깜빡거리는 레트로 데코레이션 */
@@ -507,7 +508,7 @@
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             width: 100%;
-            max-width: 600px;
+            max-width: 770px;
             margin-top: 5px;
             border: 4px solid #dfd9cb;
         }
@@ -548,7 +549,184 @@
             transform: translateY(2px);
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
-        
+
+        /* * 신규 외장 셋톱박스(Tuner Deck) 컨테이너 */
+        .retro-deck {
+            background-color: #ded9cb;
+            border: 6px solid #b8b3a5;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 770px;
+            margin-top: 15px;
+            padding: 15px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .deck-title {
+            color: #2b2923;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #b8b3a5;
+            padding-bottom: 6px;
+            margin-top: 0;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .deck-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .deck-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .deck-column {
+            background-color: #eae5d7;
+            border: 3px solid #cbc5b5;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .column-sub-title {
+            font-size: 10px;
+            color: #4a473e;
+            margin: 0;
+            border-bottom: 1px dotted #cbc5b5;
+            padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .deck-textarea {
+            width: 100%;
+            height: 110px;
+            border: 2px solid #b8b3a5;
+            border-radius: 6px;
+            background-color: #fcfbfa;
+            font-size: 10px;
+            padding: 8px;
+            resize: none;
+            color: #2b2923;
+            line-height: 1.4;
+        }
+
+        .deck-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .deck-input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #b8b3a5;
+            border-radius: 6px;
+            background-color: #fcfbfa;
+            font-size: 10px;
+            color: #2b2923;
+        }
+
+        .deck-btn {
+            padding: 8px 12px;
+            font-size: 10px;
+            border-radius: 6px;
+            border: 2px solid #b8b3a5;
+            background: linear-gradient(180deg, #fcfbfa, #dcd7c9);
+            color: #4a473e;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.1s ease;
+        }
+
+        .deck-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .deck-btn.accent-btn {
+            background: linear-gradient(180deg, #2b2923, #151412);
+            color: #ffcc00;
+            border-color: #1a1915;
+            font-size: 11px;
+            padding: 10px;
+        }
+
+        /* 도트 매트릭스 채널 목록 테이블 */
+        .lineup-scroll {
+            max-height: 180px;
+            overflow-y: auto;
+            border: 2px solid #b8b3a5;
+            border-radius: 6px;
+            background-color: #fcfbfa;
+        }
+
+        .lineup-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            text-align: left;
+        }
+
+        .table-header {
+            background-color: #cbc5b5;
+            color: #2b2923;
+            padding: 6px;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .table-row {
+            border-bottom: 1px solid #eae5d7;
+            transition: background-color 0.1s;
+        }
+
+        .table-row.active-row {
+            background-color: #fff9e6;
+            color: #b38600;
+        }
+
+        .table-row:hover {
+            background-color: #f5f2e9;
+        }
+
+        .table-cell {
+            padding: 6px;
+            vertical-align: middle;
+        }
+
+        .cell-actions {
+            display: flex;
+            gap: 2px;
+        }
+
+        .cell-btn {
+            padding: 2px 5px;
+            font-size: 8px;
+            border-radius: 3px;
+            border: 1px solid #cbc5b5;
+            background-color: #eae5d7;
+            cursor: pointer;
+        }
+
+        .cell-btn:hover {
+            background-color: #b8b3a5;
+        }
+
         #share-link-display {
             margin-top: 12px;
             background-color: #2b2923;
@@ -559,6 +737,7 @@
             text-align: center;
             min-height: 18px;
             word-break: break-all;
+            width: 100%;
         }
 
         /* 모바일 최적화 미디어 쿼리 */
@@ -566,7 +745,7 @@
             body {
                 padding: 10px 5px;
             }
-            .custom-controls {
+            .custom-controls, .retro-deck {
                 width: 95%;
                 padding: 15px 10px;
             }
@@ -681,6 +860,68 @@
         </div>
         <div id="share-link-display"></div>
     </div>
+
+    <!-- 🔌 외장 아날로그 채널 편성 셋톱박스 (Set-top Tuner Deck) -->
+    <div class="retro-deck">
+        <div class="deck-title">
+            <span>📟 EXTERNAL RETRO TUNER DECK (외장 채널 편성 셋톱박스)</span>
+            <span style="font-size: 9px; color: #5c5950;">MODEL: STB-1974</span>
+        </div>
+        
+        <div class="deck-grid">
+            <!-- 1. 일괄 가져오기 (M3U 텍스트 또는 링크 목록) -->
+            <div class="deck-column">
+                <h4 class="column-sub-title">
+                    <span>M3U IPTV 본문 / 줄바꿈 링크 일괄 입력</span>
+                    <span style="color:#7c1212;">★ BULK PARSER</span>
+                </h4>
+                <textarea id="bulk-import-textarea" class="deck-textarea" placeholder="#EXTM3U&#10;#EXTINF:-1, 내 사랑 IPTV 실시간&#10;http://example.com/stream.m3u8&#10;&#10;또는 일반 유튜브, MP4 주소를 줄바꿈(엔터)으로 여러 개 붙여넣으세요."></textarea>
+                <button id="deck-import-btn" class="deck-btn">📥 일괄 파싱 및 목록 가져오기</button>
+            </div>
+
+            <!-- 2. 수동 채널 개별 등록 -->
+            <div class="deck-column">
+                <h4 class="column-sub-title">
+                    <span>개별 채널 직접 신규 등록</span>
+                    <span style="color:#111;">★ MANUAL ADD</span>
+                </h4>
+                <div class="deck-input-group">
+                    <input type="text" id="manual-ch-name" class="deck-input" placeholder="채널 이름을 입력하세요 (예: MBC 뉴스)">
+                    <input type="text" id="manual-ch-source" class="deck-input" placeholder="소스 주소 (유튜브 ID / M3U8 주소 / MP4 링크)">
+                </div>
+                <button id="deck-add-btn" class="deck-btn">➕ 개별 채널 리스트에 추가</button>
+            </div>
+        </div>
+
+        <!-- 3. 현재 TV 채널 편성표 관리 데크 -->
+        <div class="deck-column" style="margin-top: 5px;">
+            <h4 class="column-sub-title">
+                <span>현재 실시간 TV 채널 편성표 (다이얼 전환 리스트)</span>
+                <span id="channel-counter" style="color: #4a473e;">채널 8개 작동 중</span>
+            </h4>
+            
+            <div class="lineup-scroll">
+                <table class="lineup-table">
+                    <thead>
+                        <tr style="background-color: #cbc5b5;">
+                            <th class="table-header" style="width: 10%;">CH</th>
+                            <th class="table-header" style="width: 45%;">채널 이름 (이중 클릭 시 수정)</th>
+                            <th class="table-header" style="width: 20%;">타입</th>
+                            <th class="table-header" style="width: 25%;">편성 관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lineup-tbody">
+                        <!-- 채널 목록 동적 생성 영역 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="button-group" style="display: flex; gap: 8px; margin-top: 4px;">
+                <button id="deck-apply-btn" class="deck-btn accent-btn" style="flex: 2;">📺 설정한 편성표를 TV에 즉시 송출</button>
+                <button id="deck-reset-btn" class="deck-btn" style="flex: 1;">🔄 기본 아날로그 8개 채널로 복구</button>
+            </div>
+        </div>
+    </div>
     
     <script>
         // Web Audio API 기반의 기계 기어 "딸깍" 노브 사운드 합성 엔진
@@ -733,17 +974,31 @@
         const playerFilterWrapper = document.getElementById('player-filter-wrapper');
         const hlsVideo = document.getElementById('hls-video');
 
-        // 기본 제공 8개 채널 비디오 목록
+        // 셋톱박스(Tuner Deck) 엘리먼트 정의
+        const bulkImportTextarea = document.getElementById('bulk-import-textarea');
+        const deckImportBtn = document.getElementById('deck-import-btn');
+        const manualChName = document.getElementById('manual-ch-name');
+        const manualChSource = document.getElementById('manual-ch-source');
+        const deckAddBtn = document.getElementById('deck-add-btn');
+        const lineupTbody = document.getElementById('lineup-tbody');
+        const deckApplyBtn = document.getElementById('deck-apply-btn');
+        const deckResetBtn = document.getElementById('deck-reset-btn');
+        const channelCounter = document.getElementById('channel-counter');
+
+        // 기본 제공 클래식 8개 채널 미디어 리스트
         const defaultChannels = [
-            'aEecppc9c10', // 채널 1
-            '8zbpITJKUZg', // 채널 2
-            '8oXaCFzm9oc', // 채널 3
-            'm_5J0cVHLik', // 채널 4
-            'S87sCX5Jjo0', // 채널 5
-            '5vjD0d8D9Ec', // 채널 6
-            'n0Z4KuYy2ro', // 채널 7
-            'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' // 채널 8 (기본 MP4 비디오 테스트 채널)
+            { name: "Classic Retro", source: 'aEecppc9c10' }, // 채널 1
+            { name: "Symphony Air", source: '8zbpITJKUZg' }, // 채널 2
+            { name: "Vapor Forest", source: '8oXaCFzm9oc' }, // 채널 3
+            { name: "Cyber City", source: 'm_5J0cVHLik' }, // 채널 4
+            { name: "Ocean Breeze", source: 'S87sCX5Jjo0' }, // 채널 5
+            { name: "Neon Alley", source: '5vjD0d8D9Ec' }, // 채널 6
+            { name: "Cozy Hearth", source: 'n0Z4KuYy2ro' }, // 채널 7
+            { name: "Big Buck Bunny", source: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' } // 채널 8
         ];
+
+        // 셋톱박스 채널 편성표를 보관하는 핵심 데이터 스토어 (깊은 복사로 초기 로드)
+        let activePlaylist = JSON.parse(JSON.stringify(defaultChannels));
         
         // STATIC 노브 클릭 시 조절될 GIF 노이즈 레벨 단계 설정 (최대 60%까지 부드럽게 증가)
         const noiseLevels = [0, 0.20, 0.40, 0.60];
@@ -773,19 +1028,25 @@
         let isYouTubeActive = true;
         let hlsEngine = null;
 
-        /* * 녹색 OSD 디스플레이 알림 기능 */
+        /* * 녹색 OSD 디스플레이 알림 기능 (다중 데이터 출력 및 이름 가독성 강화) */
         let osdTimeout;
         function triggerOSD(text, forceLive = false) {
+            let cleanText = text || '';
+            // 채널명이 길어질 경우 4:3 브라운관 비율을 고려해 12자 이내로 예쁘게 축약 표시
+            if (cleanText.length > 12) {
+                cleanText = cleanText.substring(0, 11) + '..';
+            }
+
             if (isCurrentLive || forceLive) {
-                osd.innerHTML = `<span class="osd-live-blink">LIV</span>`;
+                osd.innerHTML = `<span class="osd-live-blink">LIV</span> ${cleanText}`;
             } else {
-                osd.textContent = text;
+                osd.textContent = cleanText;
             }
             osd.style.opacity = '1';
             clearTimeout(osdTimeout);
             osdTimeout = setTimeout(() => {
                 osd.style.opacity = '0';
-            }, 1800);
+            }, 2500); // 셋톱박스 이름 표출을 위해 OSD 노출 시간 약간 연장
         }
 
         /* * 모바일 크기에 맞춰 정밀하게 TV 크기를 조율하는 미적 비례 축소 제어 장치 */
@@ -838,7 +1099,7 @@
             // 공유 비디오나 초기 비디오가 IPTV/MP4 인 경우 예외 분석 처리
             if (isM3u8Url(initial) || isMp4Url(initial)) {
                 // 백그라운드 구동을 위해 우선 유튜브 임시 기동
-                initYouTubePlayer(defaultChannels[0]);
+                initYouTubePlayer(defaultChannels[0].source);
                 // 즉시 해당 비디오 소스 가속 주입하여 자동재생 실행
                 setTimeout(() => {
                     safeLoadVideo(initial, true);
@@ -846,6 +1107,8 @@
             } else {
                 initYouTubePlayer(initial);
             }
+            // 셋톱박스 라인업 뷰 렌더링
+            renderPlaylistDeck();
         }
 
         // 유튜브 플레이어 초기화 엔진
@@ -947,7 +1210,7 @@
 
         function getInitialVideoId() {
             const urlParams = new URLSearchParams(window.location.search);
-            const rawUrl = urlParams.get('video') || defaultChannels[0];
+            const rawUrl = urlParams.get('video') || defaultChannels[0].source;
             return rawUrl;
         }
 
@@ -960,6 +1223,17 @@
         function isMp4Url(url) {
             const u = url.trim().toLowerCase();
             return u.includes('.mp4') || u.includes('.webm') || u.includes('.ogg') || u.includes('.mov');
+        }
+
+        // * 유튜브 플레이리스트 감지 기능
+        function isYouTubePlaylist(url) {
+            return url.trim().includes('list=');
+        }
+
+        // * 유튜브 플레이리스트 ID 추출 도구
+        function extractPlaylistId(url) {
+            const match = url.match(/[?&]list=([^#\&\?]+)/);
+            return match ? match[1] : url.trim();
         }
 
         // * 초강력 유튜브 비디오 및 실시간 라이브 주소 분석기
@@ -1035,8 +1309,6 @@
                     }
                 });
             }
-
-            triggerOSD('LIV', true);
         }
 
         // * 직접 미디어 파일 (MP4, WebM 등) 스트리밍 탑재 로직
@@ -1214,27 +1486,35 @@
         });
 
         function changeChannel() {
+            if (activePlaylist.length === 0) {
+                triggerOSD('EMPTY');
+                return;
+            }
             playKnobSound();
             channelEffect.style.display = 'block';
 
-            currentChannelIndex = (currentChannelIndex + 1) % defaultChannels.length;
-            chRotation += 45; 
+            // 편성표 수량에 맞춰 다이얼 순환 폭 자동 교정
+            currentChannelIndex = (currentChannelIndex + 1) % activePlaylist.length;
+            chRotation += Math.max(30, Math.floor(360 / activePlaylist.length)); 
             channelDial.style.setProperty('--rotation', `${chRotation}deg`);
             
-            const nextVideoId = defaultChannels[currentChannelIndex];
+            const targetChannel = activePlaylist[currentChannelIndex];
             
             // 실시간 상태 감지 플래그 선행 처리
-            isCurrentLive = (nextVideoId.includes('.m3u8'));
+            isCurrentLive = (targetChannel.source.includes('.m3u8'));
 
-            // 만능 안전 엔진으로 채널 변경 로딩 처리 (OSD는 숫자 하나 혹은 LIV 문자 깜빡임)
-            safeLoadVideo(nextVideoId, false);
+            // 만능 안전 엔진 가동
+            safeLoadVideo(targetChannel.source, false, targetChannel.name);
             
+            // 셋톱박스 내부 선택 리스트 하이라이트 동기화
+            highlightDeckRow(currentChannelIndex);
+
             setTimeout(() => {
                 channelEffect.style.display = 'none';
             }, 500);
         }
 
-        // STATIC 노이즈 다이얼 조작 (위키미디어의 Television_static.gif 의 실시간 투명도 세밀 조절 - 60%까지 부드러운 순환 적용)
+        // STATIC 노이즈 다이얼 조작
         noiseKnob.addEventListener('click', () => {
             if (!isTvOn) return;
             playKnobSound();
@@ -1272,7 +1552,7 @@
             triggerOSD(`${presetNames[currentPresetIndex]}`);
         });
 
-        // * 하단 가변 튜너 COLOR 조작 (10% 단위)
+        // * 하단 가변 튜너 COLOR 조작
         colorAdjustKnob.addEventListener('click', () => {
             if (!isTvOn) return;
             playKnobSound();
@@ -1284,7 +1564,7 @@
             triggerOSD(`${Math.round(colorValue * 100)}%`);
         });
 
-        // * 하단 가변 튜너 GRAYSCALE 조작 (10% 단위)
+        // * 하단 가변 튜너 GRAYSCALE 조작
         grayscaleAdjustKnob.addEventListener('click', () => {
             if (!isTvOn) return;
             playKnobSound();
@@ -1296,7 +1576,7 @@
             triggerOSD(`${Math.round(grayscaleValue * 100)}%`);
         });
 
-        // * 하단 가변 튜너 CONTRAST 조작 (10% 단위)
+        // * 하단 가변 튜너 CONTRAST 조작
         contrastAdjustKnob.addEventListener('click', () => {
             if (!isTvOn) return;
             playKnobSound();
@@ -1308,38 +1588,70 @@
             triggerOSD(`${Math.round(contrastValue * 100)}%`);
         });
 
-        // 만능 안전 비디오, IPTV M3U8 및 직접 연결 비디오(MP4 등) 통합 처리 엔진
-        function safeLoadVideo(videoId, isCustom = false) {
+        // 만능 안전 비디오, IPTV M3U8, 유튜브 플레이리스트 및 직접 연결 비디오(MP4 등) 통합 처리 엔진
+        function safeLoadVideo(videoId, isCustom = false, customTitle = '') {
             currentVideoId = videoId;
             shareDisplay.textContent = '';
             
-            // 1. 만약 입력된 비디오 경로가 IPTV M3U8 형식인 경우 처리
+            const displayTitle = customTitle || (isCustom ? 'AV INPUT' : `CH ${currentChannelIndex + 1}`);
+
+            // 1. 만약 입력된 비디오 경로가 유튜브 플레이리스트인 경우
+            if (isYouTubePlaylist(videoId)) {
+                isYouTubeActive = true;
+                const playlistId = extractPlaylistId(videoId);
+                
+                if (hlsVideo) {
+                    hlsVideo.pause();
+                    hlsVideo.src = "";
+                    hlsVideo.style.display = 'none';
+                }
+                
+                const ytElem = document.getElementById('player-container');
+                if (ytElem) ytElem.style.display = 'block';
+                
+                triggerOSD(displayTitle);
+
+                if (isPlayerReady && player && typeof player.loadPlaylist === 'function') {
+                    try {
+                        player.loadPlaylist({
+                            list: playlistId,
+                            listType: 'playlist',
+                            index: 0,
+                            startSeconds: 0
+                        });
+                        if (currentVolume === 0) player.mute();
+                        else {
+                            player.unMute();
+                            player.setVolume(currentVolume);
+                        }
+                    } catch(e) {
+                        fallbackDirectIframe(videoId);
+                    }
+                } else {
+                    fallbackDirectIframe(videoId);
+                }
+                return;
+            }
+
+            // 2. 만약 입력된 비디오 경로가 IPTV M3U8 형식인 경우 처리
             if (isM3u8Url(videoId)) {
                 isYouTubeActive = false;
                 isCurrentLive = true;
-                if (isCustom) {
-                    triggerOSD('AV');
-                } else {
-                    triggerOSD(`${currentChannelIndex + 1}`);
-                }
+                triggerOSD(displayTitle);
                 loadHlsStream(videoId);
                 return;
             }
 
-            // 2. 만약 입력된 비디오 경로가 직접 MP4/WebM 형식인 경우 처리
+            // 3. 만약 입력된 비디오 경로가 직접 MP4/WebM 형식인 경우 처리
             if (isMp4Url(videoId)) {
                 isYouTubeActive = false;
                 isCurrentLive = false;
-                if (isCustom) {
-                    triggerOSD('AV');
-                } else {
-                    triggerOSD(`${currentChannelIndex + 1}`);
-                }
+                triggerOSD(displayTitle);
                 loadDirectVideo(videoId);
                 return;
             }
 
-            // 3. 유튜브 형식 소스 처리
+            // 4. 일반 단일 유튜브 형식 소스 처리
             isYouTubeActive = true;
 
             // HLS 비디오 숨김 처리 및 네이티브 플레이어 정리
@@ -1359,10 +1671,8 @@
 
             if (isCurrentLive) {
                 triggerOSD('LIV', true);
-            } else if (isCustom) {
-                triggerOSD('AV');
             } else {
-                triggerOSD(`${currentChannelIndex + 1}`);
+                triggerOSD(displayTitle);
             }
 
             if (isPlayerReady && player && typeof player.loadVideoById === 'function') {
@@ -1385,13 +1695,13 @@
             }
         }
 
-        // 유틸리티 설정
+        // 유틸리티 설정 (자동 채널 변경)
         autoChangeToggle.addEventListener('click', () => {
             isAutoChangeOn = !isAutoChangeOn;
             autoChangeToggle.textContent = `자동 채널 변경: ${isAutoChangeOn ? '켜짐' : '꺼짐'}`;
         });
 
-        // 영상 불러오기 버튼 클릭 핸들러 (유튜브 라이브, IPTV, MP4 일괄 감지 및 자동 분기 기동)
+        // 상단 인풋 영상 불러오기 버튼 클릭 핸들러
         loadBtn.addEventListener('click', () => {
             if (!isTvOn) return;
             const url = linkInput.value.trim();
@@ -1399,8 +1709,8 @@
 
             isCurrentLive = false;
 
-            if (isM3u8Url(url) || isMp4Url(url)) {
-                safeLoadVideo(url, true);
+            if (isM3u8Url(url) || isMp4Url(url) || isYouTubePlaylist(url)) {
+                safeLoadVideo(url, true, 'AV INPUT');
                 linkInput.value = '';
             } else {
                 const videoId = extractVideoId(url);
@@ -1408,7 +1718,7 @@
                     if (url.includes('/live') || url.includes('live')) {
                         isCurrentLive = true;
                     }
-                    safeLoadVideo(videoId, true); 
+                    safeLoadVideo(videoId, true, 'AV INPUT'); 
                     linkInput.value = '';
                 } else {
                     shareDisplay.textContent = '유효하지 않은 링크 포맷입니다. (유튜브, IPTV, 혹은 MP4 동영상 주소를 입력하세요)';
@@ -1417,11 +1727,280 @@
             }
         });
 
+        // 공유 링크 생성기
         createLinkBtn.addEventListener('click', () => {
             if (!isTvOn) return;
             const baseUrl = window.location.origin + window.location.pathname;
             const shareableLink = `${baseUrl}?video=${encodeURIComponent(currentVideoId)}`;
             shareDisplay.textContent = `공유 링크: ${shareableLink}`;
+        });
+
+
+        /* ==========================================
+           📟 외장 아날로그 셋톱박스 (STB) 엔진 로직
+           ========================================== */
+
+        // 미디어 소스 형식 분석 헬퍼
+        function detectSourceType(source) {
+            if (isM3u8Url(source)) return "📺 IPTV (HLS)";
+            if (isMp4Url(source)) return "📼 파일 (MP4)";
+            if (isYouTubePlaylist(source)) return "🎼 유튜브 재생목록";
+            return "🔴 유튜브 비디오";
+        }
+
+        // 셋톱박스 편성 목록 테이블 렌더링
+        function renderPlaylistDeck() {
+            lineupTbody.innerHTML = '';
+            channelCounter.textContent = `채널 ${activePlaylist.length}개 로드됨`;
+
+            activePlaylist.forEach((ch, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = `table-row ${idx === currentChannelIndex ? 'active-row' : ''}`;
+                tr.id = `lineup-row-${idx}`;
+
+                // 더블클릭 시 이름 수정 이벤트 연결
+                tr.addEventListener('dblclick', () => {
+                    const newName = prompt(`채널 [${idx + 1}]의 새 이름을 입력하세요:`, ch.name);
+                    if (newName !== null && newName.trim() !== '') {
+                        ch.name = newName.trim();
+                        renderPlaylistDeck();
+                    }
+                });
+
+                const typeLabel = detectSourceType(ch.source);
+
+                tr.innerHTML = `
+                    <td class="table-cell" style="font-weight:bold;">${idx + 1}</td>
+                    <td class="table-cell" style="cursor:pointer;" title="더블클릭 시 이름 편집">${ch.name}</td>
+                    <td class="table-cell" style="color: #6c6757; font-size: 9px;">${typeLabel}</td>
+                    <td class="table-cell cell-actions">
+                        <button class="cell-btn" onclick="playDeckChannel(${idx})" title="즉시 재생">▶</button>
+                        <button class="cell-btn" onclick="moveDeckChannel(${idx}, -1)" title="위로">▲</button>
+                        <button class="cell-btn" onclick="moveDeckChannel(${idx}, 1)" title="아래로">▼</button>
+                        <button class="cell-btn" onclick="deleteDeckChannel(${idx})" style="color:#ff3b30;" title="삭제">❌</button>
+                    </td>
+                `;
+                lineupTbody.appendChild(tr);
+            });
+        }
+
+        // 특정 채널 리스트 행 하이라이트 동기화
+        function highlightDeckRow(activeIndex) {
+            const rows = lineupTbody.querySelectorAll('.table-row');
+            rows.forEach((row, i) => {
+                if (i === activeIndex) {
+                    row.classList.add('active-row');
+                } else {
+                    row.classList.remove('active-row');
+                }
+            });
+        }
+
+        // 셋톱박스 내부에서 개별 재생 호출
+        window.playDeckChannel = function(index) {
+            if (!isTvOn) {
+                turnTvOn();
+            }
+            currentChannelIndex = index;
+            const target = activePlaylist[index];
+            isCurrentLive = (target.source.includes('.m3u8'));
+            safeLoadVideo(target.source, false, target.name);
+            highlightDeckRow(index);
+            playKnobSound();
+        };
+
+        // 셋톱박스 채널 위치 정렬 이동
+        window.moveDeckChannel = function(index, direction) {
+            const targetIdx = index + direction;
+            if (targetIdx < 0 || targetIdx >= activePlaylist.length) return;
+            
+            // 배열 데이터 교환 (Swap)
+            const temp = activePlaylist[index];
+            activePlaylist[index] = activePlaylist[targetIdx];
+            activePlaylist[targetIdx] = temp;
+
+            // 현재 가리키던 채널 포인터도 동적 트래킹 유지
+            if (currentChannelIndex === index) {
+                currentChannelIndex = targetIdx;
+            } else if (currentChannelIndex === targetIdx) {
+                currentChannelIndex = index;
+            }
+
+            playKnobSound();
+            renderPlaylistDeck();
+        };
+
+        // 셋톱박스 채널 개별 삭제
+        window.deleteDeckChannel = function(index) {
+            if (activePlaylist.length <= 1) {
+                alert("최소 1개 이상의 채널은 편성표에 남아 있어야 합니다.");
+                return;
+            }
+            
+            activePlaylist.splice(index, 1);
+            
+            // 삭제 후 재생 타겟 포인터 안전 조정
+            if (currentChannelIndex >= activePlaylist.length) {
+                currentChannelIndex = activePlaylist.length - 1;
+            }
+
+            playKnobSound();
+            renderPlaylistDeck();
+        };
+
+        // 수동 채널 입력 개별 추가 기능
+        deckAddBtn.addEventListener('click', () => {
+            const name = manualChName.value.trim();
+            const sourceUrl = manualChSource.value.trim();
+
+            if (!name || !sourceUrl) {
+                alert("채널 이름과 소스 주소(또는 ID)를 정확히 입력하세요.");
+                return;
+            }
+
+            let finalSource = sourceUrl;
+            // 유튜브 링크일 경우 ID만 깔끔하게 정제 파싱
+            if (!isM3u8Url(sourceUrl) && !isMp4Url(sourceUrl) && !isYouTubePlaylist(sourceUrl)) {
+                const extractedId = extractVideoId(sourceUrl);
+                if (extractedId) finalSource = extractedId;
+            }
+
+            activePlaylist.push({
+                name: name,
+                source: finalSource
+            });
+
+            manualChName.value = '';
+            manualChSource.value = '';
+
+            playKnobSound();
+            renderPlaylistDeck();
+        });
+
+        // * M3U 파서 엔진 고도화 구현
+        function parseM3uToPlaylist(m3uText) {
+            const lines = m3uText.split('\n');
+            const parsedList = [];
+            let tempName = '';
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                if (line.startsWith('#EXTINF:')) {
+                    // #EXTINF:-1 tvg-id="..." , 채널 이름 형식 추출
+                    const commaIndex = line.lastIndexOf(',');
+                    if (commaIndex !== -1) {
+                        tempName = line.substring(commaIndex + 1).trim();
+                    } else {
+                        tempName = 'IPTV 채널 ' + (parsedList.length + 1);
+                    }
+                } else if (!line.startsWith('#')) {
+                    // 주소 파트 로딩
+                    parsedList.push({
+                        name: tempName || 'IPTV 채널 ' + (parsedList.length + 1),
+                        source: line
+                    });
+                    tempName = ''; // 초기화
+                }
+            }
+            return parsedList;
+        }
+
+        // * 일반 복사 주소(유튜브, MP4 등) 개행 단위 일괄 파서 구현
+        function parseBulkUrlsToPlaylist(bulkText) {
+            const lines = bulkText.split('\n');
+            const parsedList = [];
+
+            lines.forEach((line) => {
+                const url = line.trim();
+                if (!url || url.startsWith('#')) return;
+
+                let name = "";
+                let source = url;
+
+                if (isM3u8Url(url)) {
+                    name = `IPTV 채널 ${parsedList.length + 1}`;
+                } else if (isMp4Url(url)) {
+                    name = `파일 비디오 ${parsedList.length + 1}`;
+                } else if (isYouTubePlaylist(url)) {
+                    name = `유튜브 재생목록 ${parsedList.length + 1}`;
+                } else {
+                    const ytId = extractVideoId(url);
+                    if (ytId) {
+                        source = ytId;
+                        name = `유튜브 비디오 ${parsedList.length + 1}`;
+                    } else {
+                        // 규격화 실패 시 건너뜀
+                        return;
+                    }
+                }
+
+                parsedList.push({ name, source });
+            });
+
+            return parsedList;
+        }
+
+        // 일괄 파싱 메모패드 가져오기 기동
+        deckImportBtn.addEventListener('click', () => {
+            const content = bulkImportTextarea.value.trim();
+            if (!content) {
+                alert("가져올 M3U 파일 본문이나 비디오 링크 리스트를 입력해 주세요.");
+                return;
+            }
+
+            let loadedList = [];
+            // M3U 헤더 존재 여부로 자동 분류 기동
+            if (content.toUpperCase().startsWith('#EXTM3U')) {
+                loadedList = parseM3uToPlaylist(content);
+            } else {
+                loadedList = parseBulkUrlsToPlaylist(content);
+            }
+
+            if (loadedList.length === 0) {
+                alert("유효한 비디오 링크나 IPTV 스트리밍 주소를 감지하지 못했습니다.");
+                return;
+            }
+
+            activePlaylist = activePlaylist.concat(loadedList);
+            bulkImportTextarea.value = '';
+
+            playKnobSound();
+            renderPlaylistDeck();
+            alert(`성공적으로 ${loadedList.length}개의 채널을 신규로 정렬 배치했습니다!`);
+        });
+
+        // 설정한 편성표 TV에 적용
+        deckApplyBtn.addEventListener('click', () => {
+            if (activePlaylist.length === 0) {
+                alert("TV에 적용할 채널이 없습니다.");
+                return;
+            }
+            
+            playKnobSound();
+            currentChannelIndex = 0;
+            
+            // 첫 번째 채널 자동 송출 기동
+            const firstChannel = activePlaylist[0];
+            isCurrentLive = (firstChannel.source.includes('.m3u8'));
+            safeLoadVideo(firstChannel.source, false, firstChannel.name);
+            
+            renderPlaylistDeck();
+            triggerOSD('APPLY');
+        });
+
+        // 기본 채널 복구
+        deckResetBtn.addEventListener('click', () => {
+            if (confirm("정말로 기본 아날로그 클래식 채널 8개로 복구하시겠습니까?")) {
+                activePlaylist = JSON.parse(JSON.stringify(defaultChannels));
+                currentChannelIndex = 0;
+                
+                playKnobSound();
+                safeLoadVideo(activePlaylist[0].source, false, activePlaylist[0].name);
+                renderPlaylistDeck();
+                triggerOSD('RESET');
+            }
         });
     </script>
 </body>
