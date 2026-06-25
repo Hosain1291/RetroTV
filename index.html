@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>My Old TV - Ultimate All-In-One Autoplay Edition</title>
     <!-- HLS.js 라이브러리 탑재로 .m3u8 IPTV 스트리밍 완벽 지원 -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>9
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         /* Mona12 도트 픽셀 폰트 로드 */
         @import url('https://cdn.jsdelivr.net/gh/MonadABXY/mona-font/web/mona.css');
@@ -812,6 +812,24 @@
         window.addEventListener('orientationchange', () => {
             setTimeout(handleResize, 100);
         });
+
+        // * 브라우저 자동재생 보안 우회 보조 장치 (사용자 첫 화면 상호작용 시 즉시 기동)
+        document.addEventListener('click', () => {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            if (isTvOn) {
+                if (isYouTubeActive) {
+                    if (isPlayerReady && player && typeof player.playVideo === 'function') {
+                        player.playVideo();
+                    }
+                } else {
+                    if (hlsVideo && hlsVideo.paused) {
+                        hlsVideo.play().catch(e => {});
+                    }
+                }
+            }
+        }, { once: true });
 
         // * 전역 준비 핸들러를 선언하여 유튜브 스크립트 로드 타이밍 충돌을 완전 차단합니다.
         function onYouTubeIframeAPIReady() {
