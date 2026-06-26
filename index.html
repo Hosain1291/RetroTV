@@ -15,7 +15,7 @@
             box-sizing: border-box;
         }
 
-        body, input, button, select, textarea, .osd-text, .tuner-num-label, .shelf-knob-label, .control-label, #unmute-message, .deck-title, .table-header, .table-row {
+        body, input, button, select, textarea, .osd-text, .tuner-num-label, .shelf-knob-label, .control-label, .deck-title, .table-header, .table-row, #retro-modal {
             font-family: 'Mona12', 'Courier New', monospace !important;
             font-weight: bold !important;
         }
@@ -243,32 +243,6 @@
             background: #fff;
             box-shadow: 0 0 10px #fff, 0 0 25px #fff;
             transition: width 0.3s ease-in-out;
-        }
-
-        /* 소리 켜기 안내 배너 */
-        #unmute-message {
-            position: absolute;
-            bottom: 25px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.85);
-            border: 1px solid #ffcc00;
-            color: #ffcc00;
-            padding: 8px 16px;
-            border-radius: 8px;
-            z-index: 5;
-            font-size: 11px;
-            text-align: center;
-            opacity: 1;
-            transition: opacity 0.5s;
-            white-space: nowrap;
-            pointer-events: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
-
-        #unmute-message.hidden {
-            opacity: 0;
-            pointer-events: none;
         }
 
         /* * 하단 조율 휠 영역 (COLOR, GRAYSCALE, CONTRAST 아날로그 저항 노브 구현) */
@@ -740,6 +714,79 @@
             width: 100%;
         }
 
+        /* 📟 아날로그 시스템 인라인 모달 윈도우 스타일 */
+        #retro-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .retro-modal-content {
+            background: #eae5d7;
+            border: 6px solid #b8b3a5;
+            border-radius: 16px;
+            padding: 20px;
+            width: 90%;
+            max-width: 420px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+            position: relative;
+        }
+
+        .retro-modal-title {
+            font-size: 13px;
+            color: #7c1212;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #cbc5b5;
+            padding-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .retro-modal-text {
+            font-size: 11px;
+            color: #2b2923;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            white-space: pre-line;
+            text-align: center;
+        }
+
+        .retro-modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .retro-modal-btn {
+            flex: 1;
+            padding: 10px;
+            font-size: 11px;
+            border-radius: 6px;
+            border: 2px solid #b8b3a5;
+            background: linear-gradient(180deg, #fcfbfa, #dcd7c9);
+            color: #4a473e;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        .retro-modal-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .retro-modal-btn.confirm-yes-btn {
+            background: linear-gradient(180deg, #2b2923, #151412);
+            color: #ffcc00;
+            border-color: #1a1915;
+        }
+
         /* 모바일 최적화 미디어 쿼리 */
         @media (max-width: 500px) {
             body {
@@ -774,7 +821,6 @@
                     <div class="screen">
                         <!-- 복고풍 녹색 Phosphor OSD 지시창 -->
                         <div id="osd" class="osd-text">1</div>
-                        <div id="unmute-message">VOLUME 다이얼(아래쪽 큰 노브)을 클릭해 볼륨을 올려주세요</div>
                         <div id="power-off-overlay">
                             <div id="power-off-line"></div>
                         </div>
@@ -923,6 +969,18 @@
             </div>
         </div>
     </div>
+
+    <!-- 📟 아날로그 하드웨어 UI 인라인 모달 윈도우 구조 -->
+    <div id="retro-modal">
+        <div class="retro-modal-content">
+            <div id="retro-modal-title" class="retro-modal-title">📟 SYSTEM ALERT</div>
+            <div id="retro-modal-text" class="retro-modal-text">알림 내용이 들어갑니다.</div>
+            <div class="retro-modal-buttons">
+                <button id="retro-modal-ok-btn" class="retro-modal-btn confirm-yes-btn">확인</button>
+                <button id="retro-modal-cancel-btn" class="retro-modal-btn">취소</button>
+            </div>
+        </div>
+    </div>
     
     <script>
         // Web Audio API 기반의 기계 기어 "딸깍" 노브 사운드 합성 엔진
@@ -970,7 +1028,6 @@
         const loadBtn = document.getElementById('load-video-btn');
         const createLinkBtn = document.getElementById('create-share-link-btn');
         const shareDisplay = document.getElementById('share-link-display');
-        const unmuteMessage = document.getElementById('unmute-message');
 
         const playerFilterWrapper = document.getElementById('player-filter-wrapper');
         const hlsVideo = document.getElementById('hls-video');
@@ -985,6 +1042,57 @@
         const deckApplyBtn = document.getElementById('deck-apply-btn');
         const deckResetBtn = document.getElementById('deck-reset-btn');
         const channelCounter = document.getElementById('channel-counter');
+
+        // 📟 아날로그 인라인 모달 컨트롤 정의
+        const retroModal = document.getElementById('retro-modal');
+        const retroModalTitle = document.getElementById('retro-modal-title');
+        const retroModalText = document.getElementById('retro-modal-text');
+        const retroModalOkBtn = document.getElementById('retro-modal-ok-btn');
+        const retroModalCancelBtn = document.getElementById('retro-modal-cancel-btn');
+
+        let currentModalResolve = null;
+
+        // 📟 인라인 아날로그 Alert/Confirm 윈도우 팝업 엔진
+        function showRetroAlert(text, title = "📟 SYSTEM ALERT") {
+            return new Promise((resolve) => {
+                retroModalTitle.textContent = title;
+                retroModalText.textContent = text;
+                retroModalCancelBtn.style.display = 'none';
+                retroModalOkBtn.style.width = '100%';
+                retroModal.style.display = 'flex';
+                
+                currentModalResolve = () => {
+                    retroModal.style.display = 'none';
+                    resolve(true);
+                };
+            });
+        }
+
+        function showRetroConfirm(text, title = "📟 RETRO TUNER CONFIRM") {
+            return new Promise((resolve) => {
+                retroModalTitle.textContent = title;
+                retroModalText.textContent = text;
+                retroModalCancelBtn.style.display = 'block';
+                retroModalOkBtn.style.width = 'auto';
+                retroModal.style.display = 'flex';
+                
+                currentModalResolve = (result) => {
+                    retroModal.style.display = 'none';
+                    resolve(result);
+                };
+            });
+        }
+
+        // 모달 버튼 클릭 리스너 바인딩
+        retroModalOkBtn.addEventListener('click', () => {
+            playKnobSound();
+            if (currentModalResolve) currentModalResolve(true);
+        });
+
+        retroModalCancelBtn.addEventListener('click', () => {
+            playKnobSound();
+            if (currentModalResolve) currentModalResolve(false);
+        });
 
         // 기본 제공 클래식 8개 채널 미디어 리스트
         const defaultChannels = [
@@ -1033,7 +1141,7 @@
         let noiseSource = null;
         let noiseGainNode = null;
 
-        // 실시간 백색 소음 재생 루프 기동 엔진
+        // 실시간 백색 소음 재생 루프 기동 엔진 (백그라운드 가동 무제한 연장)
         function startWhiteNoise() {
             if (!audioCtx) return;
             
@@ -1478,7 +1586,6 @@
             noiseOverlay.style.opacity = '0'; 
             
             powerBtn.classList.remove('on');
-            unmuteMessage.classList.add('hidden');
         }
 
         // TV 전원 켜기
@@ -1506,9 +1613,6 @@
                         try { hlsVideo.play().catch(e => {}); } catch(e) {}
                     }
                 }
-                
-                if(currentVolume > 0) unmuteMessage.classList.add('hidden');
-                else unmuteMessage.classList.remove('hidden');
             }, 300);
             powerBtn.classList.add('on');
         }
@@ -1530,13 +1634,11 @@
 
             if (currentVolume === 0) {
                 triggerOSD('MUTE');
-                unmuteMessage.classList.remove('hidden');
                 if (isPlayerReady && player && typeof player.mute === 'function') {
                     try { player.mute(); } catch(e) {}
                 }
             } else {
                 triggerOSD(`${currentVolume}%`);
-                unmuteMessage.classList.add('hidden');
                 if (isPlayerReady && player && typeof player.unMute === 'function') {
                     try { 
                         player.unMute(); 
@@ -1862,14 +1964,14 @@
                         
                         triggerOSD('APPLY');
                         linkInput.value = '';
-                        alert(`M3U 링크로부터 ${loadedList.length}개의 라이브 채널을 파싱하여 TV 편성표에 동기화 완료했습니다!`);
+                        showRetroAlert(`M3U 링크로부터 ${loadedList.length}개의 라이브 채널을 파싱하여 TV 편성표에 동기화 완료했습니다!`, "📟 M3U LOAD SUCCESS");
                     } else {
                         throw new Error("Parsed zero channels");
                     }
                 } catch (e) {
                     console.error(e);
                     triggerOSD('ERR');
-                    alert("원격 M3U 링크 로딩에 실패했습니다. CORS 프록시 터널링 제한이 있거나 올바르지 않은 M3U 규격 링크입니다.");
+                    showRetroAlert("원격 M3U 링크 로딩에 실패했습니다. CORS 프록시 터널링 제한이 있거나 올바르지 않은 M3U 규격 링크입니다.", "📟 LOAD ERROR");
                 } finally {
                     loadBtn.textContent = "영상 불러오기";
                     loadBtn.disabled = false;
@@ -2001,7 +2103,7 @@
         // 셋톱박스 채널 개별 삭제
         window.deleteDeckChannel = function(index) {
             if (activePlaylist.length <= 1) {
-                alert("최소 1개 이상의 채널은 편성표에 남아 있어야 합니다.");
+                showRetroAlert("최소 1개 이상의 채널은 편성표에 남아 있어야 합니다.", "📟 LINEUP ERROR");
                 return;
             }
             
@@ -2022,7 +2124,7 @@
             const sourceUrl = manualChSource.value.trim();
 
             if (!name || !sourceUrl) {
-                alert("채널 이름과 소스 주소(또는 ID)를 정확히 입력하세요.");
+                showRetroAlert("채널 이름과 소스 주소(또는 ID)를 정확히 입력하세요.", "📟 INPUT WARNING");
                 return;
             }
 
@@ -2125,7 +2227,7 @@
         deckImportBtn.addEventListener('click', async () => {
             const content = bulkImportTextarea.value.trim();
             if (!content) {
-                alert("가져올 M3U 파일 본문, 원격 M3U 주소(http://...), 또는 개별 비디오 링크 리스트를 입력해 주세요.");
+                showRetroAlert("가져올 M3U 파일 본문, 원격 M3U 주소(http://...), 또는 개별 비디오 링크 리스트를 입력해 주세요.", "📟 INPUT BLANK");
                 return;
             }
 
@@ -2156,11 +2258,11 @@
                     bulkImportTextarea.value = '';
                     renderPlaylistDeck();
                     triggerOSD('SUCCESS');
-                    alert(`원격지 주소 분석 완료! 총 ${loadedList.length}개의 라이브 채널이 셋톱박스에 추가되었습니다.`);
+                    showRetroAlert(`원격지 주소 분석 완료! 총 ${loadedList.length}개의 라이브 채널이 셋톱박스에 추가되었습니다.`, "📟 LOAD SUCCESS");
                 } catch (err) {
                     console.error(err);
                     triggerOSD('ERR');
-                    alert("원격 M3U 재생목록을 다운로드하지 못했습니다. CORS 프록시 정책 제한이 있거나 유효하지 않은 M3U/M3U8 주소입니다.");
+                    showRetroAlert("원격 M3U 재생목록을 다운로드하지 못했습니다. CORS 프록시 정책 제한이 있거나 유효하지 않은 M3U/M3U8 주소입니다.", "📟 DOWNLOAD ERROR");
                 } finally {
                     deckImportBtn.textContent = "📥 일괄 파싱 및 목록 가져오기";
                     deckImportBtn.disabled = false;
@@ -2177,7 +2279,7 @@
             }
 
             if (loadedList.length === 0) {
-                alert("유효한 비디오 링크나 IPTV 스트리밍 주소를 감지하지 못했습니다.");
+                showRetroAlert("유효한 비디오 링크나 IPTV 스트리밍 주소를 감지하지 못했습니다.", "📟 PARSE ERROR");
                 return;
             }
 
@@ -2185,13 +2287,13 @@
             bulkImportTextarea.value = '';
 
             renderPlaylistDeck();
-            alert(`성공적으로 ${loadedList.length}개의 채널을 편성표에 일괄 추가했습니다!`);
+            showRetroAlert(`성공적으로 ${loadedList.length}개의 채널을 편성표에 일괄 추가했습니다!`, "📟 LIST UPDATE");
         });
 
         // 설정한 편성표 TV에 적용
         deckApplyBtn.addEventListener('click', () => {
             if (activePlaylist.length === 0) {
-                alert("TV에 적용할 채널이 없습니다.");
+                showRetroAlert("TV에 적용할 채널이 없습니다.", "📟 PLAYLIST EMPTY");
                 return;
             }
             
@@ -2208,8 +2310,9 @@
         });
 
         // 기본 채널 복구
-        deckResetBtn.addEventListener('click', () => {
-            if (confirm("정말로 기본 아날로그 클래식 채널 8개로 복구하시겠습니까?")) {
+        deckResetBtn.addEventListener('click', async () => {
+            const confirmReset = await showRetroConfirm("정말로 기본 아날로그 클래식 채널 8개로 복구하시겠습니까?");
+            if (confirmReset) {
                 activePlaylist = JSON.parse(JSON.stringify(defaultChannels));
                 currentChannelIndex = 0;
                 
